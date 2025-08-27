@@ -1,5 +1,15 @@
 # Intelligent CD
 
+
+
+<div style="display: flex; align-items: flex-start; gap: 2rem;">
+<div style="flex: 1; text-align: center;">
+
+![Chatbot Interface](docs/images/chatbot.png)
+
+</div>
+<div style="flex: 1;">
+
 This project provides an application that can be deployed to an OpenShift cluster to provide a chat interface to modernize and optimize your cluster using a chat interface.
 
 ## Features
@@ -9,10 +19,25 @@ This project provides an application that can be deployed to an OpenShift cluste
 - Use of **llama-stack** to coordinate all the AI components.
 - Use of **Red Hat OpenShift AI** as the base platform for all the AI components.
 
+</div>
+
+</div>
+
 
 ## Architecture
 
 WIP
+
+
+## Bug: Llamastack in several namespaces
+
+There is a bug in the current implementation of the Llama Stack operator provided in OpenShift AI. With this bug, the CRD that allows to deploy the Llama Stack Distribution with extra privileges is only created automatically in the first namespace where a Llama Stack Distribution is deployed.
+
+If you already deployed the Llama Stack Distribution in a namespace, you can create the CRD manually in the other namespaces by running the following command:
+
+```bash
+oc adm policy add-cluster-role-to-user system:openshift:scc:anyuid -z llama-stack-sa --rolebinding-name llama-stack-crb-$NAMESPACE -n $NAMESPACE
+```
 
 
 ## How to deploy
