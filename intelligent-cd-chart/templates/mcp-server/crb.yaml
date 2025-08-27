@@ -7,6 +7,8 @@ metadata:
   name: {{ .serviceAccount.name }}-cluster-admin
   labels:
     app: {{ .name }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
 subjects:
   - kind: ServiceAccount
     name: {{ .serviceAccount.name }}
