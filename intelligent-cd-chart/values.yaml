@@ -1,0 +1,93 @@
+# Global configuration
+
+global:
+  namespace: intelligent-cd
+
+inference:
+  model: "llama-3-2-3b"
+  url: "https://URL:PORT/v1"
+  apiToken: ""
+  tlsVerify: "true"
+
+RAG: {}
+# TODO: Add RAG configuration
+
+gradioUI:
+  name: gradio
+  replicaCount: 1
+
+  image:
+    repository: "quay.io/alopezme/intelligent-cd-gradio"
+    tag: "latest"
+    pullPolicy: Always
+
+  exposure:
+    # Type of exposure: none, ingress, or route
+    type: "route"
+
+  # Resources
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "1"
+      memory: "2Gi"
+
+mcpServers:
+  - name: ocp-mcp-server
+    replicaCount: 1
+    image:
+      repository: "quay.io/alopezme/kubernetes-mcp-server"
+      tag: "latest"
+      pullPolicy: Always
+
+    # MCP Server specific configuration
+    mcpServer:
+      port: 8080
+      args:
+        - "--sse-port"
+        - "8080"
+        - "--disable-destructive"
+        - "--log-level"
+        - "5"
+
+    serviceAccount:
+      create: true
+      # Service account name (required if create=true, optional if create=false for existing SA)
+      name: "ocp-mcp-server"
+
+    rbac:
+      clusterRole: "view" # cluster-admin / view / edit
+
+  - name: argocd-mcp-server
+    replicaCount: 1
+
+    image:
+      repository: "quay.io/alopezme/argocd-mcp"
+      tag: "latest"
+      pullPolicy: Always
+
+    # MCP Server specific configuration
+    mcpServer:
+      # Port for the MCP server to listen on
+      port: 3000
+
+    serviceAccount:
+      create: false
+      # Service account name (required if create=true, optional if create=false for existing SA)
+      name: default
+
+    env:
+      - name: ARGOCD_BASE_URL
+        value: "https://argocd-server.openshift-gitops:443"
+      - name: ARGOCD_API_TOKEN
+        value: "<Token>"
+      - name: NODE_TLS_REJECT_UNAUTHORIZED
+        value: "0"
+
+llamaStack:
+  name: llama-stack
+  type: mcp # vllm, mcp
+  route:
+    enabled: false

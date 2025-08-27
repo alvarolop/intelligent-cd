@@ -1,0 +1,73 @@
+---
+apiVersion: llamastack.io/v1alpha1
+kind: LlamaStackDistribution
+metadata:
+  name: {{ .Values.llamaStack.name }}
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: {{ .Values.llamaStack.name }}
+spec:
+  replicas: 1
+  server:
+    distribution:
+      name: rh-dev
+      # image: "quay.io/opendatahub/llama-stack:odh"
+    containerSpec:
+      resources:
+        requests:
+          memory: "500Mi"
+          cpu: "100m"
+        limits:
+          memory: "4Gi"
+          cpu: "2"
+      env:
+        - name: INFERENCE_MODEL
+          valueFrom:
+            secretKeyRef:
+              key: INFERENCE_MODEL
+              name: {{ .Values.llamaStack.name }}-secret
+        - name: VLLM_URL
+          valueFrom:
+            secretKeyRef:
+              key: VLLM_URL
+              name: {{ .Values.llamaStack.name }}-secret
+        - name: VLLM_TLS_VERIFY
+          valueFrom:
+            secretKeyRef:
+              key: VLLM_TLS_VERIFY
+              name: {{ .Values.llamaStack.name }}-secret
+        - name: VLLM_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: VLLM_API_TOKEN
+              name: {{ .Values.llamaStack.name }}-secret
+        {{- if eq .Values.llamaStack.type "mcp" }}
+        - name: MCP_OCP_URL
+          valueFrom:
+            secretKeyRef:
+              key: MCP_OCP_URL
+              name: {{ .Values.llamaStack.name }}-secret
+        - name: MCP_OCP_TLS_VERIFY
+          valueFrom:
+            secretKeyRef:
+              key: MCP_OCP_TLS_VERIFY
+              name: {{ .Values.llamaStack.name }}-secret
+        - name: MCP_ARGOCD_URL
+          valueFrom:
+            secretKeyRef:
+              key: MCP_ARGOCD_URL
+              name: {{ .Values.llamaStack.name }}-secret
+        - name: MCP_ARGOCD_TLS_VERIFY
+          valueFrom:
+            secretKeyRef:
+              key: MCP_ARGOCD_TLS_VERIFY
+              name: {{ .Values.llamaStack.name }}-secret
+        {{- end }}
+    {{- if eq .Values.llamaStack.type "mcp" }}
+    # Default config in /opt/app-root/run.yaml
+    userConfig:
+      configMapName: {{ .Values.llamaStack.name }}-config
+    {{- end }}
+    storage:
+      size: "20Gi"
+      # mountPath: "/opt/app-root/src/.llama/distributions/rh-dev"

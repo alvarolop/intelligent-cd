@@ -1,0 +1,64 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.gradioUI.name }}
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: {{ .Values.gradioUI.name }}
+spec:
+  replicas: {{ .Values.gradioUI.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.gradioUI.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.gradioUI.name }}
+    spec:
+      containers:
+        - name: {{ .Values.gradioUI.name }}
+          image: "{{ .Values.gradioUI.image.repository }}:{{ .Values.gradioUI.image.tag | default "latest" }}"
+          imagePullPolicy: {{ .Values.gradioUI.image.pullPolicy | default "Always" }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - name: http
+              containerPort: 7860
+              protocol: TCP
+          env:
+            # Gradio Configuration
+            - name: GRADIO_SERVER_NAME
+              value: "0.0.0.0"
+            - name: GRADIO_SERVER_PORT
+              value: "7860"
+            - name: LLAMA_STACK_URL
+              value: "http://{{ .Values.llamaStack.name }}.{{ .Values.global.namespace }}:8321"
+            - name: DEFAULT_LLM_MODEL
+              value: "{{ .Values.inference.model }}"
+          livenessProbe:
+            httpGet:
+              path: "/"
+              port: 7860
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          readinessProbe:
+            httpGet:
+              path: "/"
+              port: 7860
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          
+          {{- with .Values.gradioUI.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}

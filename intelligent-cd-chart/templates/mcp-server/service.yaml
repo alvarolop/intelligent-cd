@@ -1,0 +1,19 @@
+{{- range .Values.mcpServers }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Values.global.namespace }}
+  labels:
+    app: {{ .name }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .mcpServer.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: {{ .name }}
+{{- end }}
