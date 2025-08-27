@@ -1,16 +1,8 @@
 # Intelligent CD
 
-
-
-<div style="display: flex; align-items: flex-start; gap: 2rem;">
-<div style="flex: 1; text-align: center;">
+This project provides an application that can be deployed to an OpenShift cluster to provide a chat interface to modernize and optimize your cluster using a chat interface.
 
 ![Chatbot Interface](docs/images/chatbot.png)
-
-</div>
-<div style="flex: 1;">
-
-This project provides an application that can be deployed to an OpenShift cluster to provide a chat interface to modernize and optimize your cluster using a chat interface.
 
 ## Features
 
@@ -18,10 +10,6 @@ This project provides an application that can be deployed to an OpenShift cluste
 - Use of **MCP servers** to provide tools to interact with OpenShift, ArgoCD, and GitHub.
 - Use of **llama-stack** to coordinate all the AI components.
 - Use of **Red Hat OpenShift AI** as the base platform for all the AI components.
-
-</div>
-
-</div>
 
 
 ## Architecture
