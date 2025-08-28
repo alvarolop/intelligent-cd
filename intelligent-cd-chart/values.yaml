@@ -11,12 +11,12 @@ inference:
 
 llamaStack:
   name: llama-stack
-  type: mcp # vllm, mcp
   route:
     enabled: false
 
-RAG: {}
-# TODO: Add RAG configuration
+RAG:
+  enabled: false
+  # TODO: Add RAG configuration
 
 gradioUI:
   name: gradio

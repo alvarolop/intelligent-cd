@@ -41,7 +41,7 @@ spec:
             secretKeyRef:
               key: VLLM_API_TOKEN
               name: {{ .Values.llamaStack.name }}-secret
-        {{- if eq .Values.llamaStack.type "mcp" }}
+        {{- if .Values.mcpServers }}
         - name: MCP_OCP_URL
           valueFrom:
             secretKeyRef:
@@ -63,7 +63,7 @@ spec:
               key: MCP_ARGOCD_TLS_VERIFY
               name: {{ .Values.llamaStack.name }}-secret
         {{- end }}
-    {{- if eq .Values.llamaStack.type "mcp" }}
+    {{- if .Values.mcpServers }}
     # Default config in /opt/app-root/run.yaml
     userConfig:
       configMapName: {{ .Values.llamaStack.name }}-config
