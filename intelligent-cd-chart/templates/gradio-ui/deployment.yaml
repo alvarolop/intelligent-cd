@@ -59,8 +59,8 @@ spec:
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 3
-          terminationGracePeriodSeconds: 5          
           {{- with .Values.gradioUI.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+      terminationGracePeriodSeconds: 5          
