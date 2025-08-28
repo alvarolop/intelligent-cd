@@ -18,7 +18,7 @@ spec:
           memory: "500Mi"
           cpu: "100m"
         limits:
-          memory: "4Gi"
+          memory: "8Gi"
           cpu: "2"
       env:
         - name: INFERENCE_MODEL

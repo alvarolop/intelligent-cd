@@ -10,7 +10,7 @@ metadata:
 spec:
   to:
     kind: Service
-    name: {{ .Values.llamaStack.name }}
+    name: {{ .Values.llamaStack.name }}-service
     weight: 100
   port:
     targetPort: http

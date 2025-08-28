@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Values.llamaStack.name }}
+  name: {{ .Values.llamaStack.name }}-service
   namespace: {{ .Values.global.namespace }}
   labels:
     app: {{ .Values.llamaStack.name }}

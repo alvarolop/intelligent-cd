@@ -53,6 +53,7 @@ oc get route gradio -n intelligent-cd --template='https://{{ .spec.host }}/?__th
 
 ```bash
 helm template intelligent-cd-chart \
+--set inference.model="$OLS_PROVIDER_MODEL_NAME"
 --set inference.url=$OLS_PROVIDER_API_URL \
 --set inference.apiToken=$OLS_PROVIDER_API_TOKEN \
 | oc apply -f -

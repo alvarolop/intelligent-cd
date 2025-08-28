@@ -39,7 +39,7 @@ spec:
             - name: GRADIO_SERVER_PORT
               value: "7860"
             - name: LLAMA_STACK_URL
-              value: "http://{{ .Values.llamaStack.name }}.{{ .Values.global.namespace }}:8321"
+              value: "http://{{ .Values.llamaStack.name }}-service.{{ .Values.global.namespace }}:8321"
             - name: DEFAULT_LLM_MODEL
               value: "{{ .Values.inference.model }}"
           livenessProbe:
@@ -59,7 +59,7 @@ spec:
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 3
-          
+          terminationGracePeriodSeconds: 5          
           {{- with .Values.gradioUI.resources }}
           resources:
             {{- toYaml . | nindent 12 }}

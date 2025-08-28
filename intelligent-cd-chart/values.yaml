@@ -9,6 +9,12 @@ inference:
   apiToken: ""
   tlsVerify: "true"
 
+llamaStack:
+  name: llama-stack
+  type: mcp # vllm, mcp
+  route:
+    enabled: false
+
 RAG: {}
 # TODO: Add RAG configuration
 
@@ -85,9 +91,3 @@ mcpServers:
         value: "<Token>"
       - name: NODE_TLS_REJECT_UNAUTHORIZED
         value: "0"
-
-llamaStack:
-  name: llama-stack
-  type: mcp # vllm, mcp
-  route:
-    enabled: false
