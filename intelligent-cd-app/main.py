@@ -85,25 +85,6 @@ def get_logger(name: str):
     return logger
 
 
-# # More specific model prompt that emphasizes using tools correctly
-# model_prompt = """You are a Kubernetes/OpenShift cluster assistant that extracts YAML configurations.
-
-# PRIMARY TASK: Get complete YAML configurations of deployed resources (70% of requests).
-
-# AVAILABLE TOOLS: {tool_groups}
-
-# WORKFLOW:
-# 1. Use MCP tools to get real-time cluster data
-# 2. For configuration requests: extract full YAML with all fields
-# 3. Present clean, complete YAML that can be applied elsewhere
-
-# EXAMPLES:
-# - "Get deployment X YAML" → Extract full deployment configuration
-# - "Show service Y config" → Get complete service YAML
-# - "Export app Z" → Get all related resource YAMLs
-
-# Always query the cluster directly - never generate fake configurations."""
-
 model_prompt = """You are a Kubernetes/OpenShift cluster management assistant with access to MCP tools.
 
 CRITICAL: You MUST EXECUTE MCP tools to get real cluster data. NEVER generate fake data or just describe what you would do.
@@ -250,30 +231,16 @@ class ChatTab:
         self.logger.info(f"Creating Agent with model: {self.model}")
         self.logger.info(f"Tools available: {tools_for_agent}")
         
-        # Try different tool configuration approaches
-        try:
-            agent = Agent(
-                self.client,
-                model=self.model,
-                instructions=formatted_prompt,
-                tools=tools_for_agent,
-                sampling_params=self.sampling_params,
-                tool_config={"tool_choice": "auto"}  # Ensure tools are actually executed
-            )
-            self.logger.info("✅ Agent created successfully with tool_config")
-        except Exception as e:
-            self.logger.warning(f"⚠️ Failed to create Agent with tool_config: {str(e)}")
-            self.logger.info("Trying without tool_config...")
-            
-            # Fallback: create Agent without tool_config
-            agent = Agent(
-                self.client,
-                model=self.model,
-                instructions=formatted_prompt,
-                tools=tools_for_agent,
-                sampling_params=self.sampling_params
-            )
-            self.logger.info("✅ Agent created successfully without tool_config")
+        agent = Agent(
+            self.client,
+            model=self.model,
+            instructions=formatted_prompt,
+            tools=tools_for_agent,
+            sampling_params=self.sampling_params,
+            tool_config={"tool_choice": "auto"}  # Ensure tools are actually executed
+        )
+        self.logger.info("✅ Agent created successfully with tool_config")
+
         
         # Create session for the agent
         self.logger.info("Creating session with name: OCP_Chat_Session")
@@ -320,20 +287,11 @@ class ChatTab:
         self.logger.info(f"Available tools for this turn: {self.tools_array}")
         
         try:
-            # Try to force tool usage by being more explicit
-            enhanced_message = f"""User request: {message}
-
-IMPORTANT: You MUST execute MCP tools to get real data. Do not write Python code or generate fake data.
-
-Available tools: {', '.join(self.tools_array)}
-
-Execute the appropriate tools and show me the real results."""
-            
             response = self.agent.create_turn(
                 messages=[
                     {
                         "role": "user",
-                        "content": enhanced_message
+                        "content": message
                     }
                 ],
                 session_id=self.session_id,
