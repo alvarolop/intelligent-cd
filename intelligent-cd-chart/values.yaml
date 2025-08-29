@@ -31,6 +31,18 @@ gradioUI:
     # Type of exposure: none, ingress, or route
     type: "route"
 
+  env:
+    TOOLGROUPS_DENYLIST:
+      - builtin::websearch
+      - builtin::rag
+
+    # ArgoCD configuration
+    ARGOCD_BASE_URL: "https://argocd-server-openshift-gitops.apps.ocp.sandbox515.opentlc.com"
+    ARGOCD_API_TOKEN: "<Token>"
+
+    # Security and logging
+    LOG_LEVEL: "DEBUG" # DEBUG, INFO, WARNING, ERROR, CRITICAL
+
   # Resources
   resources:
     requests:
@@ -83,11 +95,3 @@ mcpServers:
       create: false
       # Service account name (required if create=true, optional if create=false for existing SA)
       name: default
-
-    env:
-      - name: ARGOCD_BASE_URL
-        value: "https://argocd-server.openshift-gitops:443"
-      - name: ARGOCD_API_TOKEN
-        value: "<Token>"
-      - name: NODE_TLS_REJECT_UNAUTHORIZED
-        value: "0"
