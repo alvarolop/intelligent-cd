@@ -4,7 +4,7 @@ import os
 import logging
 from typing import List, Dict
 from llama_stack_client import LlamaStackClient, Agent
-
+from urllib.parse import urlparse
 
 """
 Intelligent CD Chatbot - Production-Ready Logging Configuration
@@ -15,14 +15,21 @@ Environment Variables for Logging:
 - LOG_LEVEL: Set logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). Default: INFO
 
 Environment Variables for Tools:
-- ENABLE_BUILTIN_TOOLS: Enable builtin tools like websearch/RAG (true/false). Default: false
-- TAVILY_SEARCH_API_KEY: API key for websearch tool (if ENABLE_BUILTIN_TOOLS=true)
+- TOOLGROUPS_DENYLIST: JSON array of toolgroup IDs to exclude (e.g., '["builtin::websearch", "mcp::argocd"]')
+- TAVILY_SEARCH_API_KEY: API key for websearch tool (if using builtin tools)
 - Other API keys as needed for builtin tools
+
+Environment Variables for MCP Server Authentication:
+- ARGOCD_BASE_URL: Base URL of the ArgoCD server (e.g., "https://argocd.example.com")
+- ARGOCD_API_TOKEN: API token for ArgoCD server authentication
+- Additional MCP servers can be configured by adding similar environment variables
 
 Examples:
   export LOG_LEVEL=DEBUG    # Enable verbose debugging
   export LOG_LEVEL=WARNING  # Only show warnings and errors
-  export ENABLE_BUILTIN_TOOLS=true  # Enable builtin tools (requires API keys)
+  export TOOLGROUPS_DENYLIST='["builtin::websearch", "mcp::argocd"]'  # Exclude specific toolgroups
+  export ARGOCD_BASE_URL="https://argocd.example.com"  # ArgoCD base URL
+  export ARGOCD_API_TOKEN="your-argocd-token"  # ArgoCD API token
   
 Log Levels:
 - DEBUG: Detailed information for debugging (tools, responses, etc.)
@@ -123,138 +130,78 @@ Remember: You are connected to a real cluster. Use the tools to get real informa
 class ChatTab:
     """Handles chat functionality with Llama Stack LLM"""
     
-    def __init__(self, client: LlamaStackClient, model: str, sampling_params: dict, enable_builtin_tools: bool = False):
+    def __init__(self, client: LlamaStackClient, model: str, sampling_params: dict):
         self.client = client
         self.model = model
         self.sampling_params = sampling_params
-        self.enable_builtin_tools = enable_builtin_tools
         self.logger = get_logger("chat")
-        
+
         # Initialize available tools once during initialization
-        # - available_tools => For the model prompt
-        # - tools_array => For the agent configuration
-        self.available_tools, self.tools_array = self._get_available_tools()
+        self.tools_array = self._get_available_tools()
+        
         # Initialize agent and session for the entire chat
         self.agent, self.session_id = self._initialize_agent()
+
     
-    def _get_available_tools(self) -> tuple[str, list]:
-        """Get available tools and convert to array format once during initialization"""
+    def _get_available_tools(self) -> list:
+        """Get available tools and filter based on denylist configuration"""
         tools = self.client.tools.list()
-        
         tool_groups = list(set(tool.toolgroup_id for tool in tools))
-        self.logger.info(f"Found {len(tool_groups)} toolgroups: {tool_groups}")
         
-        # The Agent expects toolgroup IDs, not individual tool names
-        # Filter tools based on configuration
-        filtered_tool_groups = []
-        for toolgroup in tool_groups:
-            if toolgroup.startswith('mcp::'):
-                # Always include MCP tools
-                filtered_tool_groups.append(toolgroup)
-                self.logger.info(f"✅ Including MCP toolgroup: {toolgroup}")
-            elif toolgroup.startswith('builtin::'):
-                # Only include builtin tools if explicitly enabled
-                if self.enable_builtin_tools:
-                    filtered_tool_groups.append(toolgroup)
-                    self.logger.info(f"✅ Including builtin toolgroup: {toolgroup}")
-                else:
-                    self.logger.warning(f"⚠️ Skipping builtin toolgroup (requires API keys): {toolgroup}")
-            else:
-                # Include other toolgroups
-                filtered_tool_groups.append(toolgroup)
-                self.logger.info(f"✅ Including toolgroup: {toolgroup}")
+        # Get denylist from environment variable
+        denylist_str = os.getenv("TOOLGROUPS_DENYLIST", "")
+        denylist = []
+        if denylist_str:
+            try:
+                import json
+                denylist = json.loads(denylist_str)
+            except json.JSONDecodeError:
+                self.logger.warning(f"Invalid TOOLGROUPS_DENYLIST format: {denylist_str}")
         
-        if filtered_tool_groups:
-            tools_string = ", ".join(filtered_tool_groups)
-            # Use only filtered toolgroup IDs for the Agent
-            tools_array = filtered_tool_groups.copy()
-            self.logger.info(f"Using filtered toolgroup IDs for Agent: {tools_array}")
+        # Filter out denylisted toolgroups
+        filtered_tool_groups = [tg for tg in tool_groups if tg not in denylist]
+        
+        if denylist:
+            self.logger.info(f"Tools: {len(filtered_tool_groups)}/{len(tool_groups)} available (filtered)")
         else:
-            tools_string = "No tools available"
-            tools_array = []
-            
-        self.logger.info(f"Final tools_array (filtered toolgroup IDs): {tools_array}")
-        return tools_string, tools_array
+            self.logger.info(f"Tools: {len(tool_groups)} available (no filtering)")
+        
+        return filtered_tool_groups
     
     def _initialize_agent(self) -> tuple[Agent, str]:
         """Initialize agent and session that will be reused for the entire chat"""
-        formatted_prompt = model_prompt.format(tool_groups=self.available_tools)
+        # Convert tools array to string for the model prompt
+        tools_string = ", ".join(self.tools_array) if self.tools_array else "No tools available"
+        formatted_prompt = model_prompt.format(tool_groups=tools_string)
 
-        # Debug: Log all values being passed to the Agent
+        # Log agent creation details
         self.logger.info("=" * 60)
         self.logger.info("CREATING AGENT")
         self.logger.info("=" * 60)
-        self.logger.info(f"Client: {type(self.client).__name__} (base_url: {getattr(self.client, 'base_url', 'N/A')})")
         self.logger.info(f"Model: {self.model}")
-        self.logger.info(f"Instructions: {formatted_prompt[:200]}{'...' if len(formatted_prompt) > 200 else ''}")
-        self.logger.info(f"Tools: {self.tools_array}")
+        self.logger.info(f"Toolgroups available ({len(self.tools_array)}): {self.tools_array}")
         self.logger.info(f"Sampling params: {self.sampling_params}")
-        
-        # Test if tools exist before creating Agent
-        self.logger.info("Validating tools before Agent creation...")
-        valid_tools = []
-        all_available_tools = []
-        
-        for tool_name in self.tools_array:
-            self.logger.debug(f"Checking tool: {tool_name}")
-            try:
-                # Try to get tools for this toolgroup
-                tools_for_group = self.client.tools.list(toolgroup_id=tool_name)
-                self.logger.info(f"✅ Found {len(tools_for_group)} tools for {tool_name}")
-                
-                # Log individual tool names for debugging
-                for tool in tools_for_group:
-                    if hasattr(tool, 'name'):
-                        tool_name_str = tool.name
-                    elif hasattr(tool, 'identifier'):
-                        tool_name_str = tool.identifier
-                    else:
-                        tool_name_str = str(tool)
-                    all_available_tools.append(tool_name_str)
-                    self.logger.debug(f"  - Tool: {tool_name_str}")
-                
-                valid_tools.append(tool_name)
-            except Exception as e:
-                self.logger.warning(f"❌ Tool validation failed for {tool_name}: {str(e)}")
-        
-        self.logger.info(f"Valid toolgroups for Agent: {valid_tools}")
-        self.logger.info(f"All available individual tools: {all_available_tools}")
-        
-        # Only create Agent with valid tools
-        if not valid_tools:
-            self.logger.warning("⚠️ No valid tools found, creating Agent without tools")
-            tools_for_agent = []
-        else:
-            tools_for_agent = valid_tools
-        
-        # Create Agent with explicit tool execution configuration
-        self.logger.info(f"Creating Agent with model: {self.model}")
-        self.logger.info(f"Tools available: {tools_for_agent}")
         
         agent = Agent(
             self.client,
             model=self.model,
             instructions=formatted_prompt,
-            tools=tools_for_agent,
+            tools=self.tools_array,
             sampling_params=self.sampling_params,
-            tool_config={"tool_choice": "auto"}  # Ensure tools are actually executed
+            tool_config={"tool_choice": "auto"},  # Ensure tools are actually executed
         )
-        self.logger.info("✅ Agent created successfully with tool_config")
+        self.logger.info("✅ Agent created successfully")
 
-        
         # Create session for the agent
-        self.logger.info("Creating session with name: OCP_Chat_Session")
         session = agent.create_session(session_name="OCP_Chat_Session")
-        self.logger.debug(f"Session created: {session}")
         
         # Handle both object with .id attribute and direct string return
         if hasattr(session, 'id'):
             session_id = session.id
-            self.logger.info(f"Session ID from .id attribute: {session_id}")
         else:
             session_id = str(session)
-            self.logger.info(f"Session ID from string conversion: {session_id}")
         
+        self.logger.info(f"✅ Session created: {session_id}")
         self.logger.info("=" * 60)
         return agent, session_id
     
@@ -273,18 +220,7 @@ class ChatTab:
     
     def _execute_agent_turn(self, message: str) -> str:
         """Execute a single turn using the persistent agent and session"""
-        # Debug: Log all values being passed to create_turn
-        self.logger.debug("=" * 60)
-        self.logger.debug("EXECUTING AGENT TURN")
-        self.logger.debug("=" * 60)
-        self.logger.debug(f"Agent: {type(self.agent).__name__}")
-        self.logger.debug(f"Messages: [{{'role': 'user', 'content': '{message[:100]}{'...' if len(message) > 100 else ''}'}}]")
-        self.logger.debug(f"Session ID: {self.session_id}")
-        self.logger.debug(f"Stream: False")
-        
-        # Create turn with user message using the persistent agent and session
-        self.logger.debug("About to call agent.create_turn...")
-        self.logger.info(f"Available tools for this turn: {self.tools_array}")
+        self.logger.debug(f"Executing agent turn with {len(self.tools_array)} available tools")
         
         try:
             response = self.agent.create_turn(
@@ -297,47 +233,27 @@ class ChatTab:
                 session_id=self.session_id,
                 stream=False,  # No streaming for chat interface
             )
-            self.logger.debug("agent.create_turn completed successfully")
         except Exception as e:
             self.logger.error(f"Error in agent.create_turn: {str(e)}")
-            self.logger.error(f"Error type: {type(e).__name__}")
             import traceback
             self.logger.error(f"Traceback: {traceback.format_exc()}")
             raise e
         
-        # Debug: Log response details
-        self.logger.debug("Response received:")
-        self.logger.debug(f"Response type: {type(response).__name__}")
-        self.logger.debug(f"Response attributes: {[attr for attr in dir(response) if not attr.startswith('_')]}")
-        self.logger.debug(f"Has output_message: {hasattr(response, 'output_message')}")
-        
         # Check if the turn has steps (tool executions)
         if hasattr(response, 'steps') and response.steps:
-            self.logger.info(f"Turn has {len(response.steps)} steps (tool executions)")
-            for i, step in enumerate(response.steps):
-                self.logger.info(f"Step {i+1}: {step}")
+            self.logger.info(f"✅ Turn completed with {len(response.steps)} tool executions")
         else:
-            self.logger.warning("⚠️ Turn has no steps - tools were not executed!")
-        
-        if hasattr(response, 'output_message'):
-            self.logger.debug(f"Output message type: {type(response.output_message).__name__}")
-            self.logger.debug(f"Output message attributes: {[attr for attr in dir(response.output_message) if not attr.startswith('_')]}")
-            self.logger.debug(f"Has content: {hasattr(response.output_message, 'content')}")
-            if hasattr(response.output_message, 'content'):
-                self.logger.debug(f"Output message content: {response.output_message.content}")
+            self.logger.warning("⚠️ Turn completed without tool executions")
         
         # Extract response content from the turn
-        # The response is a Turn object, extract the output message content
         if hasattr(response, 'output_message') and hasattr(response.output_message, 'content'):
             content = response.output_message.content
-            self.logger.debug(f"Extracted content length: {len(content)}")
-            self.logger.debug("=" * 60)
+            self.logger.debug(f"Response content: {len(content)} characters")
             return content
         else:
             # Fallback to string representation
             fallback_content = str(response)
-            self.logger.debug(f"Fallback content length: {len(fallback_content)}")
-            self.logger.debug("=" * 60)
+            self.logger.debug(f"Fallback response: {len(fallback_content)} characters")
             return fallback_content
     
 
@@ -412,9 +328,10 @@ class MCPTestTab:
                 return "❌ Invalid JSON parameters. Please check your input."
             
             # Execute tool through Llama Stack using tool_runtime
+
             result = self.client.tool_runtime.invoke_tool(
                 tool_name=method_name,
-                kwargs=params
+                kwargs=params,
             )
             
             if result:
@@ -942,6 +859,31 @@ def create_demo(chat_tab: ChatTab, mcp_test_tab: MCPTestTab, system_status_tab: 
     return demo
 
 
+def get_extra_headers_config() -> dict:
+    """Configure MCP server authentication headers and return them"""
+    argocd_url = os.getenv("ARGOCD_BASE_URL")
+    argocd_token = os.getenv("ARGOCD_API_TOKEN")
+    
+    # Both variables must be defined for MCP authentication to work
+    if not argocd_url or not argocd_token:
+        return {}
+    
+    # Both are defined, create headers array
+    else:
+        headers = {
+            "X-LlamaStack-Provider-Data": json.dumps(
+                {
+                    "mcp_headers": {
+                        "http://argocd-mcp-server:3000/sse": {
+                            "x-argocd-base-url": argocd_url,
+                            "x-argocd-api-token": argocd_token
+                        },
+                    },
+                }
+            )
+        }
+        return headers
+
 def initialize_llama_stack_client() -> tuple[LlamaStackClient, ChatTab, MCPTestTab, SystemStatusTab]:
     """Initialize Llama Stack client and all tab classes"""
     # Get logger for initialization
@@ -955,47 +897,30 @@ def initialize_llama_stack_client() -> tuple[LlamaStackClient, ChatTab, MCPTestT
     logger.info("INITIALIZING LLAMA STACK CLIENT")
     logger.info("=" * 60)
     
-    # Log environment variables
-    logger.info("Environment Variables:")
-    logger.info(f"  LLAMA_STACK_URL: {os.getenv('LLAMA_STACK_URL', 'Not set (using default)')}")
-    logger.info(f"  DEFAULT_LLM_MODEL: {os.getenv('DEFAULT_LLM_MODEL', 'Not set (using default)')}")
+    # Log configuration summary
+    logger.info(f"Configuration: URL={llama_stack_url}, Model={model}")
     
-    # Log final configuration
-    logger.info("Final Configuration:")
-    logger.info(f"  Llama Stack URL: {llama_stack_url}")
-    logger.info(f"  Model: {model}")
+    extra_headers = get_extra_headers_config()
     
-    llama_stack_client = LlamaStackClient(base_url=llama_stack_url)
-    logger.info(f"Llama Stack client initialized successfully with URL: {llama_stack_url}")
+    # Initialize client and tabs
+    llama_stack_client = LlamaStackClient(
+        base_url=llama_stack_url,
+        default_headers=extra_headers
+    )
+    sampling_params = {"temperature": 0.7, "max_tokens": 4096, "strategy": {"type": "greedy"}}
     
-    # Define sampling parameters - ALL CONFIGURATION IN ONE PLACE
-    sampling_params = {
-        "temperature": 0.7,
-        "max_tokens": 4096,
-        "strategy": {"type": "greedy"}  # Added strategy like in the working example
-    }
-    
-    # Configuration for builtin tools
-    enable_builtin_tools = os.getenv("ENABLE_BUILTIN_TOOLS", "false").lower() == "true"
-    
-    logger.info("=" * 60)
-    logger.info(f"Builtin tools enabled: {enable_builtin_tools}")
-    if enable_builtin_tools:
-        logger.info("Note: Builtin tools require API keys (TAVILY_SEARCH_API_KEY, etc.)")
-    
-    # Initialize tab classes with shared client
-    chat_tab = ChatTab(llama_stack_client, model=model, sampling_params=sampling_params, enable_builtin_tools=enable_builtin_tools)
+    chat_tab = ChatTab(llama_stack_client, model=model, sampling_params=sampling_params)
     mcp_test_tab = MCPTestTab(llama_stack_client)
     system_status_tab = SystemStatusTab(llama_stack_client, llama_stack_url, model=model)
     
-    logger.info("All tab classes initialized successfully")
+    logger.info("✅ All components initialized successfully")
     logger.info("=" * 60)
-    return llama_stack_client, chat_tab, mcp_test_tab, system_status_tab
+    return chat_tab, mcp_test_tab, system_status_tab
 
 def main():
     """Main function to launch the Gradio app"""
     # Initialize Llama Stack client and tab classes
-    llama_stack_client, chat_tab, mcp_test_tab, system_status_tab = initialize_llama_stack_client()
+    chat_tab, mcp_test_tab, system_status_tab = initialize_llama_stack_client()
     
     # Create the Gradio demo with tab instances
     demo = create_demo(chat_tab, mcp_test_tab, system_status_tab)
