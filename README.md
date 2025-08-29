@@ -14,18 +14,11 @@ This project provides an application that can be deployed to an OpenShift cluste
 
 ## Architecture
 
-WIP
+The following diagram shows the architecture of the Intelligent CD application.
+
+![Intelligent CD Architecture](docs/images/architecture.svg)
 
 
-## Bug: Llamastack in several namespaces
-
-There is a bug in the current implementation of the Llama Stack operator provided in OpenShift AI. With this bug, the CRD that allows to deploy the Llama Stack Distribution with extra privileges is only created automatically in the first namespace where a Llama Stack Distribution is deployed.
-
-If you already deployed the Llama Stack Distribution in a namespace, you can create the CRD manually in the other namespaces by running the following command:
-
-```bash
-oc adm policy add-cluster-role-to-user system:openshift:scc:anyuid -z llama-stack-sa --rolebinding-name llama-stack-crb-$NAMESPACE -n $NAMESPACE
-```
 
 
 ## How to deploy
@@ -35,6 +28,14 @@ All the components are deployed using **ArgoCD**. You can find the application i
 ```bash
 oc apply -f app-intelligent-cd.yaml
 ```
+
+> [!CAUTION]
+> **Bug: Llamastack in several namespaces**
+> There is a bug in the current implementation of the Llama Stack operator provided in OpenShift AI. With this bug, the CRD that allows to deploy the Llama Stack Distribution with extra privileges is only created automatically in the first namespace where a Llama Stack Distribution is deployed.
+> If you already deployed the Llama Stack Distribution in a namespace, you can create the CRD manually in the other namespaces by running the following command:
+> ```bash
+> oc adm policy add-cluster-role-to-user system:openshift:scc:anyuid -z llama-stack-sa --rolebinding-name llama-stack-crb-$NAMESPACE -n $NAMESPACE
+> ```
 
 ## How to use
 
@@ -49,14 +50,26 @@ oc get route gradio -n intelligent-cd --template='https://{{ .spec.host }}/?__th
 
 ## Manual deployment
 
-### Deploy the namespace
 
 ```bash
 helm template intelligent-cd-chart \
 --set inference.model="$OLS_PROVIDER_MODEL_NAME"
 --set inference.url=$OLS_PROVIDER_API_URL \
 --set inference.apiToken=$OLS_PROVIDER_API_TOKEN \
+--set gradioUI.env.ARGOCD_BASE_URL=https://argocd-server.openshift-gitops:443 \
+--set gradioUI.env.ARGOCD_API_TOKEN=$ARGOCD_API_TOKEN \
 | oc apply -f -
 ```
 
-### Deploy the components
+## Generate Intelligent CD Application Container Image
+
+```bash
+podman build -t quay.io/alopezme/intelligent-cd-gradio:latest intelligent-cd-app
+podman push quay.io/alopezme/intelligent-cd-gradio:latest
+```
+
+Test the image locally:
+
+```bash
+podman run --network host quay.io/alopezme/intelligent-cd-gradio:latest
+```
