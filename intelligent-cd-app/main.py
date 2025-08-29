@@ -670,6 +670,14 @@ def create_demo(chat_tab: ChatTab, mcp_test_tab: MCPTestTab, system_status_tab: 
             flex-shrink: 0 !important;
         }
         
+        /* Chat input row styling */
+        .chat-input-row {
+            display: flex !important;
+            align-items: flex-end !important;
+            gap: 10px !important;
+            width: 100% !important;
+        }
+        
 
         
         /* Ensure both panels have equal heights */
@@ -775,15 +783,18 @@ def create_demo(chat_tab: ChatTab, mcp_test_tab: MCPTestTab, system_status_tab: 
                             
                             # Chat Input - Takes less space (scale 3)
                             with gr.Column(scale=3):
-                                msg = gr.Textbox(
-                                    label="Message",
-                                    show_label=False,
-                                    placeholder="Ask me about Kubernetes, GitOps, or OpenShift deployments... (Press Enter to send, Shift+Enter for new line)",
-                                    lines=2,
-                                    max_lines=4,
-                                    submit_btn=True,
-                                    stop_btn=True
-                                )
+                                with gr.Row():
+                                    with gr.Column(scale=6):
+                                        msg = gr.Textbox(
+                                            label="Message",
+                                            show_label=False,
+                                            placeholder="Ask me about Kubernetes, GitOps, or OpenShift deployments...",
+                                            lines=2,
+                                            max_lines=3
+                                        )
+                                    with gr.Column(scale=2):
+                                        send_btn = gr.Button("Send", variant="primary", size="md", scale=1)
+                                        save_btn = gr.Button("Save", variant="primary", size="md", scale=1)
                     
                     # MCP Test Tab
                     with gr.TabItem("🧪 MCP Test"):
@@ -841,8 +852,8 @@ def create_demo(chat_tab: ChatTab, mcp_test_tab: MCPTestTab, system_status_tab: 
             with gr.Column(scale=3):
                 # Dynamic content area for System Status, MCP Test results, and other content
                 content_area = gr.Textbox(
-                    label="📝 Code Canvas",
-                    placeholder="Click a button above to see results here, or chat with the AI to generate deployment manifests...",
+                    label="📝 Code Canvas & Saved Responses",
+                    placeholder="Click a button above to see results here, chat with the AI to generate deployment manifests, or use the Save button to move the last chat response here for better clarity...",
                     lines=20,
                     max_lines=50,
                     interactive=False,
@@ -878,11 +889,52 @@ def create_demo(chat_tab: ChatTab, mcp_test_tab: MCPTestTab, system_status_tab: 
             outputs=content_area
         )
         
-        # Chat functionality - using built-in submit button
+        # Chat functionality - both Enter key and Send button
         msg.submit(
             fn=chat_tab.chat_completion,
             inputs=[msg, chatbot],
             outputs=[chatbot, msg]
+        )
+        
+        send_btn.click(
+            fn=chat_tab.chat_completion,
+            inputs=[msg, chatbot],
+            outputs=[chatbot, msg]
+        )
+        
+        # Save button functionality - moves last chat answer to right panel
+        save_btn.click(
+            fn=lambda chat_history: f"💾 SAVED CHAT RESPONSE:\n\n{chat_history[-1]['content'] if chat_history and len(chat_history) > 0 else 'No chat history available'}",
+            inputs=[chatbot],
+            outputs=[content_area]
+        )
+        
+        # Add JavaScript to handle Enter key behavior properly
+        demo.load(
+            fn=None,
+            js="""
+            function() {
+                // Wait for the page to load and find the textarea
+                setTimeout(function() {
+                    const textarea = document.querySelector('textarea[placeholder*="Ask me about Kubernetes"]');
+                    if (textarea) {
+                        textarea.addEventListener('keydown', function(e) {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                // Find and click the send button
+                                const sendBtn = document.querySelector('button:has-text("Send")');
+                                if (sendBtn) {
+                                    sendBtn.click();
+                                }
+                            }
+                        });
+                        console.log('Enter key handler attached to chat textarea');
+                    } else {
+                        console.log('Chat textarea not found');
+                    }
+                }, 1000);
+            }
+            """
         )
         
 
