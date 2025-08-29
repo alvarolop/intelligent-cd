@@ -1,4 +1,4 @@
-# 🚀 Llama Stack Web UI
+# 🚀 Intelligent CD Web UI
 
 A simple web interface to access Llama Stack for LLM and Agent interactions with OpenShift.
 
@@ -12,7 +12,7 @@ A simple web interface to access Llama Stack for LLM and Agent interactions with
 ## Prerequisites
 
 - Python 3.11+
-- Docker (optional)
+- Podman (optional)
 - Llama Stack deployment running
 - Port forwarding: `oc port-forward service/llama-stack-service 8321:8321`
 
@@ -27,26 +27,51 @@ A simple web interface to access Llama Stack for LLM and Agent interactions with
 
 2. **Run the application:**
    ```bash
-   python main.py
+   gradio main.py
    ```
 
 3. **Access the UI:**
-   Open http://localhost:7860
+   Open http://localhost:7860/?__theme=light
 
-### Run with Docker
+
+
+```bash
+ARGOCD_BASE_URL=$(oc get route argocd-server -n openshift-gitops --template='https://{{ .spec.host }}')
+ARGOCD_ADMIN_USERNAME=admin
+ARGOCD_ADMIN_PASSWORD=$(oc get secret argocd-cluster -n openshift-gitops --template='{{index .data "admin.password"}}' | base64 -d)
+ARGOCD_API_TOKEN=$(curl -k -s $ARGOCD_BASE_URL/api/v1/session \
+  -H 'Content-Type:application/json' \
+  -d '{"username":"'"$ARGOCD_ADMIN_USERNAME"'","password":"'"$ARGOCD_ADMIN_PASSWORD"'"}' | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+
+# Test if the params are working directly to the ArgoCD API
+curl -sk $ARGOCD_BASE_URL/api/v1/applications -H "Authorization: Bearer $ARGOCD_API_TOKEN" | jq '.items[].metadata.name' 
+
+echo "Print variables:"
+echo "ARGOCD_BASE_URL: $ARGOCD_BASE_URL"
+echo "ARGOCD_ADMIN_USERNAME: $ARGOCD_ADMIN_USERNAME"
+echo "ARGOCD_ADMIN_PASSWORD: ${ARGOCD_ADMIN_PASSWORD:0:10}..."
+echo "ARGOCD_API_TOKEN: ${ARGOCD_API_TOKEN:0:10}..."
+
+export ARGOCD_BASE_URL=$ARGOCD_BASE_URL
+export ARGOCD_API_TOKEN=$ARGOCD_API_TOKEN
+
+TOOLGROUPS_DENYLIST='["builtin::websearch", "builtin::rag"]' gradio main.py
+```
+
+### Run with Podman
 
 1. **Build the image:**
    ```bash
-   docker build -t llama-stack-ui .
+   podman build -t quay.io/alopezme/intelligent-cd-gradio:latest intelligent-cd-app
    ```
 
 2. **Run the container:**
    ```bash
-   docker run -p 7860:7860 llama-stack-ui
+   podman run --network host quay.io/alopezme/intelligent-cd-gradio:latest
    ```
 
 3. **Access the UI:**
-   Open http://localhost:7860
+   Open http://localhost:7860/?__theme=light
 
 ## Configuration
 
