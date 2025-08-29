@@ -1,4 +1,4 @@
-{{- if eq .Values.llamaStack.type "mcp" }}
+{{- if .Values.mcpServers }}
 ---
 apiVersion: v1
 kind: ConfigMap
