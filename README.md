@@ -20,8 +20,19 @@ The following diagram shows the architecture of the Intelligent CD application.
 
 
 
+## Repository structure
 
-## How to deploy
+This repository is organized as follows:
+
+1. `ìntelligent-cd-app`: This is the Gradio application that provides the chat interface.
+2. `intelligent-cd-chart`: This is the Helm chart that deploys the Intelligent CD application.
+
+In order to deploy the Intelligent CD application, without customizing it, you can use the ArgoCD application `app-intelligent-cd.yaml` that is provided in this repository.
+
+
+
+
+## Step 1: How to deploy
 
 All the components are deployed using **ArgoCD**. You can find the application in the `app-intelligent-cd.yaml` file.
 
@@ -37,19 +48,14 @@ oc apply -f app-intelligent-cd.yaml
 > oc adm policy add-cluster-role-to-user system:openshift:scc:anyuid -z llama-stack-sa --rolebinding-name llama-stack-crb-$NAMESPACE -n $NAMESPACE
 > ```
 
-## How to use
 
-You can use the chat interface to modernize and optimize your cluster.
+### How to customize
 
-You can find the chat interface at:
-
-```bash
-oc get route gradio -n intelligent-cd --template='https://{{ .spec.host }}/?__theme=light'
-```
+You can customize the Intelligent CD application by modifying the `intelligent-cd-chart` Helm chart. Most of its customization is done in the `values.yaml` file that can be provided as a field of the ArgoCD application.
 
 
-## Manual deployment
 
+### Manual deployment without ArgoCD
 
 ```bash
 helm template intelligent-cd-chart \
@@ -61,7 +67,19 @@ helm template intelligent-cd-chart \
 | oc apply -f -
 ```
 
-## Generate Intelligent CD Application Container Image
+## Step 2: How to access the chat interface
+
+You can use the chat interface to modernize and optimize your cluster.
+
+You can find the chat interface at:
+
+```bash
+oc get route gradio -n intelligent-cd --template='https://{{ .spec.host }}/?__theme=light'
+```
+
+
+
+## Step 3: Generate Intelligent CD Application Container Image
 
 ```bash
 podman build -t quay.io/alopezme/intelligent-cd-gradio:latest intelligent-cd-app
