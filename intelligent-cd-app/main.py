@@ -22,11 +22,9 @@ Environment Variables for Tools:
 Environment Variables for MCP Server Authentication:
 - ARGOCD_BASE_URL: Base URL of the ArgoCD server (e.g., "https://argocd.example.com")
 - ARGOCD_API_TOKEN: API token for ArgoCD server authentication
-- Additional MCP servers can be configured by adding similar environment variables
 
 Examples:
   export LOG_LEVEL=DEBUG    # Enable verbose debugging
-  export LOG_LEVEL=WARNING  # Only show warnings and errors
   export TOOLGROUPS_DENYLIST='["builtin::websearch", "mcp::argocd"]'  # Exclude specific toolgroups
   export ARGOCD_BASE_URL="https://argocd.example.com"  # ArgoCD base URL
   export ARGOCD_API_TOKEN="your-argocd-token"  # ArgoCD API token
@@ -130,11 +128,11 @@ Remember: You are connected to a real cluster. Use the tools to get real informa
 class ChatTab:
     """Handles chat functionality with Llama Stack LLM"""
     
-    def __init__(self, client: LlamaStackClient, model: str, sampling_params: dict):
+    def __init__(self, client: LlamaStackClient, model: str):
         self.client = client
         self.model = model
-        self.sampling_params = sampling_params
         self.logger = get_logger("chat")
+        self.sampling_params = {"temperature": 0.7, "max_tokens": 4096, "strategy": {"type": "greedy"}}
 
         # Initialize available tools once during initialization
         self.tools_array = self._get_available_tools()
@@ -181,15 +179,17 @@ class ChatTab:
         self.logger.info(f"Model: {self.model}")
         self.logger.info(f"Toolgroups available ({len(self.tools_array)}): {self.tools_array}")
         self.logger.info(f"Sampling params: {self.sampling_params}")
+
         
         agent = Agent(
             self.client,
             model=self.model,
             instructions=formatted_prompt,
             tools=self.tools_array,
-            sampling_params=self.sampling_params,
             tool_config={"tool_choice": "auto"},  # Ensure tools are actually executed
+            sampling_params=self.sampling_params
         )
+        
         self.logger.info("✅ Agent created successfully")
 
         # Create session for the agent
@@ -901,15 +901,15 @@ def initialize_llama_stack_client() -> tuple[LlamaStackClient, ChatTab, MCPTestT
     logger.info(f"Configuration: URL={llama_stack_url}, Model={model}")
     
     extra_headers = get_extra_headers_config()
-    
+    logger.info(f"Extra headers: {extra_headers}")
+
     # Initialize client and tabs
     llama_stack_client = LlamaStackClient(
         base_url=llama_stack_url,
         default_headers=extra_headers
     )
-    sampling_params = {"temperature": 0.7, "max_tokens": 4096, "strategy": {"type": "greedy"}}
     
-    chat_tab = ChatTab(llama_stack_client, model=model, sampling_params=sampling_params)
+    chat_tab = ChatTab(llama_stack_client, model=model)
     mcp_test_tab = MCPTestTab(llama_stack_client)
     system_status_tab = SystemStatusTab(llama_stack_client, llama_stack_url, model=model)
     
