@@ -55,7 +55,7 @@ echo "ARGOCD_API_TOKEN: ${ARGOCD_API_TOKEN:0:10}..."
 export ARGOCD_BASE_URL=$ARGOCD_BASE_URL
 export ARGOCD_API_TOKEN=$ARGOCD_API_TOKEN
 
-TOOLGROUPS_DENYLIST='["builtin::websearch", "builtin::rag"]' gradio main.py
+TOOLGROUPS_DENYLIST='["builtin::websearch"]' gradio main.py # , "builtin::rag"
 ```
 
 ### Run with Podman

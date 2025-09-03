@@ -128,9 +128,10 @@ Remember: You are connected to a real cluster. Use the tools to get real informa
 class ChatTab:
     """Handles chat functionality with Llama Stack LLM"""
     
-    def __init__(self, client: LlamaStackClient, model: str):
+    def __init__(self, client: LlamaStackClient, model: str, vector_db_id: str):
         self.client = client
         self.model = model
+        self.vector_db_id = vector_db_id
         self.logger = get_logger("chat")
         self.sampling_params = {"temperature": 0.7, "max_tokens": 4096, "strategy": {"type": "greedy"}}
 
@@ -376,14 +377,242 @@ class MCPTestTab:
             return f"❌ Error executing method '{method_name}' from toolgroup '{toolgroup_name}': {str(e)}"
 
 
+class RAGTestTab:
+    """Handles RAG testing functionality"""
+    
+    def __init__(self, client: LlamaStackClient, vector_db_id: str):
+        self.client = client
+        self.logger = get_logger("rag")
+        self.vector_db_id = vector_db_id
+
+    def test_rag(self, query: str) -> str:
+        """Test RAG functionality and report status in a user-friendly way"""
+
+        self.logger.info(f"RAG Query:\n\n{query}")
+
+        try:
+            # Query documents
+            result = self.client.tool_runtime.rag_tool.query(
+                vector_db_ids=[self.vector_db_id],
+                content=query,
+            )
+            self.logger.debug(f"RAG Result:\n\n{result}")
+
+            # Try to format the result nicely for the user
+            if isinstance(result, (dict, list)):
+                formatted_result = json.dumps(result, indent=2)
+            else:
+                formatted_result = str(result)
+
+            return (
+                f"✅ RAG Query executed successfully!\n\n"
+                f"**Query:**\n{query}\n\n"
+                f"**Result:**\n```\n{formatted_result}\n```"
+            )
+        except Exception as e:
+            import traceback
+            tb = traceback.format_exc()
+            self.logger.error(f"RAG Query failed: {str(e)}\n{tb}")
+            return (
+                f"❌ RAG Query failed!\n\n"
+                f"**Query:**\n{query}\n\n"
+                f"**Error:**\n{str(e)}\n\n"
+                f"**Traceback:**\n```\n{tb}\n```"
+            )
+
+    def get_rag_status(self) -> str:
+        """Get detailed RAG status information including providers, databases, and documents"""
+        
+        self.logger.info("Getting detailed RAG status information...")
+        
+        status_info = []
+        status_info.append("=" * 60)
+        status_info.append("📚 RAG STATUS REPORT")
+        status_info.append("=" * 60)
+        status_info.append("")
+        
+        try:
+            # 1. List all available vector databases (summary only)
+            status_info.append("🗄️ **Vector Databases:**")
+            try:
+                vector_dbs = self.client.vector_dbs.list()
+                if vector_dbs:
+                    for db_item in vector_dbs:
+                        if hasattr(db_item, 'identifier'):
+                            db_id = db_item.identifier
+                            current_marker = " ✅ (Currently configured)" if db_id == self.vector_db_id else ""
+                            status_info.append(f"   • {db_id}{current_marker}")
+                        else:
+                            status_info.append(f"   • {str(db_item)}")
+                else:
+                    status_info.append("   • No vector databases found")
+            except Exception as e:
+                status_info.append(f"   ❌ Error listing vector databases: {str(e)}")
+            
+            status_info.append("")
+            
+            # 2. Get detailed information about the configured vector database
+            if self.vector_db_id:
+                status_info.append(f"🔍 **Detailed Information for '{self.vector_db_id}':**")
+                
+                # Try to get database info using the correct API
+                try:
+                    db_info = self.client.vector_dbs.retrieve(self.vector_db_id)
+                    if db_info:
+                        if hasattr(db_info, '__dict__'):
+                            for key, value in db_info.__dict__.items():
+                                if not key.startswith('_') and value is not None:
+                                    status_info.append(f"   • {key.replace('_', ' ').title()}: {value}")
+                        else:
+                            status_info.append(f"   • Database Info: {str(db_info)}")
+                    else:
+                        status_info.append("   • No detailed database information available")
+                except Exception as e:
+                    status_info.append(f"   ❌ Error getting database info: {str(e)}")
+                
+                status_info.append("")
+                
+                # 3. Get document information with count and truncated titles
+                status_info.append(f"📄 **Documents in '{self.vector_db_id}':**")
+                try:
+                    # Try to get document information through queries
+                    document_titles = []
+                    document_count = 0
+                    
+                    # Try different queries to extract document information
+                    test_queries = [
+                        "What documents are available?",
+                        "List all document titles",
+                        "What files or documents are stored?",
+                        "Show me the document names"
+                    ]
+                    
+                    for query in test_queries:
+                        try:
+                            result = self.client.tool_runtime.rag_tool.query(
+                                vector_db_ids=[self.vector_db_id],
+                                content=query,
+                            )
+                            if result:
+                                result_str = str(result).lower()
+                                # Look for document-related information in the response
+                                if any(keyword in result_str for keyword in ['document', 'file', 'title', 'name']):
+                                    # Try to extract titles from the response
+                                    lines = str(result).split('\n')
+                                    for line in lines:
+                                        line = line.strip()
+                                        if line and len(line) > 5 and len(line) < 100:
+                                            # Simple heuristic to identify potential document titles
+                                            if any(keyword in line.lower() for keyword in ['document', 'file', '.pdf', '.txt', '.doc', 'title']):
+                                                if line not in document_titles:
+                                                    document_titles.append(line)
+                                    break
+                        except Exception:
+                            continue
+                    
+                    # If we couldn't extract titles, try a more generic approach
+                    if not document_titles:
+                        try:
+                            # Try to get a sample of content to estimate document count
+                            sample_result = self.client.tool_runtime.rag_tool.query(
+                                vector_db_ids=[self.vector_db_id],
+                                content="sample content",
+                            )
+                            if sample_result:
+                                # Estimate based on response length and structure
+                                result_str = str(sample_result)
+                                if len(result_str) > 1000:
+                                    document_count = "Multiple documents detected"
+                                else:
+                                    document_count = "Documents available"
+                        except Exception:
+                            pass
+                    
+                    # Display results
+                    if document_titles:
+                        status_info.append(f"   • Document Count: {len(document_titles)} documents found")
+                        status_info.append("   • Document Titles (truncated):")
+                        for i, title in enumerate(document_titles[:5]):  # Show max 5 titles
+                            truncated_title = title[:60] + "..." if len(title) > 60 else title
+                            status_info.append(f"     {i+1}. {truncated_title}")
+                        if len(document_titles) > 5:
+                            status_info.append(f"     ... and {len(document_titles) - 5} more documents")
+                    elif document_count:
+                        status_info.append(f"   • Document Status: {document_count}")
+                    else:
+                        status_info.append("   • Document information not available through queries")
+                        status_info.append("   • System is responsive to queries")
+                        
+                except Exception as e:
+                    status_info.append(f"   ❌ Error accessing document information: {str(e)}")
+                
+                status_info.append("")
+                
+                # 4. Provider information (extracted from vector databases)
+                status_info.append("🔧 **Provider Information:**")
+                try:
+                    vector_dbs = self.client.vector_dbs.list()
+                    providers_found = set()
+                    for db_item in vector_dbs:
+                        if hasattr(db_item, 'provider_id'):
+                            providers_found.add(db_item.provider_id)
+                    
+                    if providers_found:
+                        status_info.append("   • Configured Providers:")
+                        for provider in providers_found:
+                            status_info.append(f"     • {provider}")
+                    else:
+                        status_info.append("   • No provider information available")
+                        
+                except Exception as e:
+                    status_info.append(f"   ❌ Error getting provider info: {str(e)}")
+                
+                status_info.append("")
+                
+                # 5. Functionality test
+                status_info.append("🧪 **Functionality Test:**")
+                try:
+                    test_result = self.client.tool_runtime.rag_tool.query(
+                        vector_db_ids=[self.vector_db_id],
+                        content="test query",
+                    )
+                    if test_result:
+                        status_info.append("   ✅ RAG query functionality is working")
+                        status_info.append(f"   • Test query returned: {len(str(test_result))} characters")
+                    else:
+                        status_info.append("   ⚠️ RAG query returned empty result")
+                except Exception as e:
+                    status_info.append(f"   ❌ RAG query test failed: {str(e)}")
+            
+            else:
+                status_info.append("❌ No vector database ID configured")
+            
+            status_info.append("")
+            status_info.append("=" * 60)
+            
+        except Exception as e:
+            import traceback
+            tb = traceback.format_exc()
+            self.logger.error(f"RAG Status check failed: {str(e)}\n{tb}")
+            status_info.append(f"❌ Error getting RAG status: {str(e)}")
+            status_info.append("")
+            status_info.append("**Traceback:**")
+            status_info.append(f"```\n{tb}\n```")
+            status_info.append("")
+            status_info.append("=" * 60)
+        
+        return "\n".join(status_info)
+
+
 class SystemStatusTab:
     """Handles system status functionality"""
     
-    def __init__(self, client: LlamaStackClient, llama_stack_url: str, model: str):
+    def __init__(self, client: LlamaStackClient, llama_stack_url: str, model: str, vector_db_id: str):
         self.client = client
         self.llama_stack_url = llama_stack_url
         self.model = model
-        self.logger = get_logger("system")
+        self.vector_db_id = vector_db_id
+        self.logger = get_logger("system")  
     
     def get_system_status(self) -> str:
         """Get comprehensive system status with better structure"""
@@ -458,7 +687,27 @@ class SystemStatusTab:
         
         llm_status.append(f"   • Response: ✅ Received {len(response_content)} characters")
         
-        # 4. MCP Server
+        # 4. RAG Server
+
+        rag_status = []
+        rag_status.append("📚 RAG Server:")
+        
+        # Check if the RAG backend provides the specified vector_db_id
+        rag_vector_dbs = []
+        try:
+            rag_vector_dbs = self.client.tool_runtime.rag_tool.list_vector_dbs()
+        except Exception as e:
+            rag_status.append("   • Status: ❌ Failed to connect to RAG backend")
+            rag_status.append(f"   • Error: {str(e)}")
+            rag_vector_dbs = []
+
+        if self.vector_db_id in rag_vector_dbs:
+            rag_status.append(f"   • Status: ✅ RAG vector DB '{self.vector_db_id}' is available")
+        else:
+            rag_status.append(f"   • Status: ❌ RAG vector DB '{self.vector_db_id}' not found")
+            rag_status.append(f"   • Available vector DBs: {rag_vector_dbs if rag_vector_dbs else 'None'}")
+
+        # 5. MCP Server
         mcp_status = []
         mcp_status.append("☸️ MCP Server:")
         
@@ -488,6 +737,8 @@ class SystemStatusTab:
             "",
             "\n".join(llm_status),
             "",
+            "\n".join(rag_status),
+            "",
             "\n".join(mcp_status),
             "",
             "=" * 60
@@ -496,7 +747,7 @@ class SystemStatusTab:
         return full_status
 
 
-def create_demo(chat_tab: ChatTab, mcp_test_tab: MCPTestTab, system_status_tab: SystemStatusTab):
+def create_demo(chat_tab: ChatTab, mcp_test_tab: MCPTestTab, rag_test_tab: RAGTestTab, system_status_tab: SystemStatusTab):
     """Create the beautiful Gradio interface with header and chat"""
     
     with gr.Blocks(
@@ -714,7 +965,7 @@ def create_demo(chat_tab: ChatTab, mcp_test_tab: MCPTestTab, system_status_tab: 
                                         save_btn = gr.Button("Save", variant="primary", size="md", scale=1)
                     
                     # MCP Test Tab
-                    with gr.TabItem("🧪 MCP Test"):
+                    with gr.TabItem("🤖 MCP Test"):
                         # Status Bar - Simple textbox with status styling
                         status_indicator = gr.Textbox(
                             label="Status",
@@ -757,10 +1008,31 @@ def create_demo(chat_tab: ChatTab, mcp_test_tab: MCPTestTab, system_status_tab: 
                         # Execute Button
                         execute_btn = gr.Button("Execute Method", variant="primary", size="lg")
                     
+                    # RAG Test Tab
+                    with gr.TabItem("📚 RAG Test"):
+                        # Preconfigured textbox
+                        rag_input = gr.Textbox(
+                            label="RAG Query",
+                            value="Based on the documents stored in the RAG, please, tell me which teams and emails I need to contact to approve that my system is not stateless and I also need a route",
+                            lines=4,
+                            max_lines=6,
+                            interactive=True,
+                            show_label=True
+                        )
+                        
+                        # Send button
+                        rag_send_btn = gr.Button("Send Query", variant="primary", size="lg")
+                        
+                        # RAG Status button
+                        rag_status_btn = gr.Button("RAG Status", variant="secondary", size="lg")
+                        
+                        # Note for user
+                        gr.Markdown("Use the textbox above to modify your RAG query, then click Send to process it. Use RAG Status to view detailed RAG configuration information.")
+                    
                     # System Status Tab
                     with gr.TabItem("🔍 System Status"):
                         # Check Status Button
-                        check_status_btn = gr.Button("Check System Status", variant="primary", size="lg")
+                        system_status_btn = gr.Button("Check System Status", variant="primary", size="lg")
                         
                         # Note for user
                         gr.Markdown("Click the button above to view detailed system information in the right panel.")
@@ -801,8 +1073,21 @@ def create_demo(chat_tab: ChatTab, mcp_test_tab: MCPTestTab, system_status_tab: 
         )
         
         # System Status Tab functionality
-        check_status_btn.click(
+        system_status_btn.click(
             fn=lambda: f"{system_status_tab.get_system_status()}",
+            outputs=content_area
+        )
+        
+        # RAG Test Tab functionality
+        rag_send_btn.click(
+            fn=rag_test_tab.test_rag,
+            inputs=[rag_input],
+            outputs=content_area
+        )
+        
+        # RAG Status button functionality
+        rag_status_btn.click(
+            fn=rag_test_tab.get_rag_status,
             outputs=content_area
         )
         
@@ -884,12 +1169,14 @@ def get_extra_headers_config() -> dict:
         }
         return headers
 
-def initialize_llama_stack_client() -> tuple[LlamaStackClient, ChatTab, MCPTestTab, SystemStatusTab]:
+
+def initialize_client() -> tuple[LlamaStackClient, ChatTab, MCPTestTab, RAGTestTab, SystemStatusTab]:
     """Initialize Llama Stack client and all tab classes"""
     # Get logger for initialization
     logger = get_logger("init")
     
     # ALL CONFIGURATION IN ONE PLACE - including environment variable reading
+    vector_db_id = os.getenv("VECTOR_DB_ID", "my_documents")
     llama_stack_url = os.getenv("LLAMA_STACK_URL", "http://localhost:8321")
     model = os.getenv("DEFAULT_LLM_MODEL", "llama-3-2-3b")
     
@@ -909,21 +1196,22 @@ def initialize_llama_stack_client() -> tuple[LlamaStackClient, ChatTab, MCPTestT
         default_headers=extra_headers
     )
     
-    chat_tab = ChatTab(llama_stack_client, model=model)
+    chat_tab = ChatTab(llama_stack_client, model=model, vector_db_id=vector_db_id)
     mcp_test_tab = MCPTestTab(llama_stack_client)
-    system_status_tab = SystemStatusTab(llama_stack_client, llama_stack_url, model=model)
+    rag_test_tab = RAGTestTab(llama_stack_client, vector_db_id)
+    system_status_tab = SystemStatusTab(llama_stack_client, llama_stack_url, model=model, vector_db_id=vector_db_id)
     
     logger.info("✅ All components initialized successfully")
     logger.info("=" * 60)
-    return chat_tab, mcp_test_tab, system_status_tab
+    return chat_tab, mcp_test_tab, rag_test_tab, system_status_tab
 
 def main():
     """Main function to launch the Gradio app"""
     # Initialize Llama Stack client and tab classes
-    chat_tab, mcp_test_tab, system_status_tab = initialize_llama_stack_client()
+    chat_tab, mcp_test_tab, rag_test_tab, system_status_tab = initialize_client()
     
     # Create the Gradio demo with tab instances
-    demo = create_demo(chat_tab, mcp_test_tab, system_status_tab)
+    demo = create_demo(chat_tab, mcp_test_tab, rag_test_tab, system_status_tab)
     
     # Launch the app
     demo.launch(
