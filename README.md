@@ -59,11 +59,11 @@ You can customize the Intelligent CD application by modifying the `intelligent-c
 
 ```bash
 helm template intelligent-cd-chart \
---set inference.model="$OLS_PROVIDER_MODEL_NAME"
---set inference.url=$OLS_PROVIDER_API_URL \
---set inference.apiToken=$OLS_PROVIDER_API_TOKEN \
---set gradioUI.env.ARGOCD_BASE_URL=https://argocd-server.openshift-gitops:443 \
---set gradioUI.env.ARGOCD_API_TOKEN=$ARGOCD_API_TOKEN \
+--set inference.model="$OLS_PROVIDER_MODEL_NAME" \
+--set inference.url="$OLS_PROVIDER_API_URL" \
+--set inference.apiToken="$OLS_PROVIDER_API_TOKEN" \
+--set gradioUI.env.ARGOCD_BASE_URL="https://argocd-server.openshift-gitops:443" \
+--set gradioUI.env.ARGOCD_API_TOKEN="$ARGOCD_API_TOKEN" \
 | oc apply -f -
 ```
 
@@ -77,9 +77,19 @@ You can find the chat interface at:
 oc get route gradio -n intelligent-cd --template='https://{{ .spec.host }}/?__theme=light'
 ```
 
+## Step 3: Ingest documents into the vector database
 
 
-## Step 3: Generate Intelligent CD Application Container Image
+```bash
+export KUBEFLOW_ENDPOINT=$(oc get route ds-pipeline-dspa -n intelligent-cd-pipelines --template="https://{{.spec.host}}")
+export BEARER_TOKEN=$(oc whoami --show-token)
+python intelligent-cd-pipelines/ingest-pipeline.py
+```
+
+
+
+
+## Extra: Generate Intelligent CD Application Container Image
 
 ```bash
 podman build -t quay.io/alopezme/intelligent-cd-gradio:latest intelligent-cd-app
