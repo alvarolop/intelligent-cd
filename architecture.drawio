@@ -1,43 +1,48 @@
 <mxfile host="65bd71144e">
     <diagram name="Intelligent CD Architecture" id="intelligent-cd-architecture">
-        <mxGraphModel dx="925" dy="543" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+        <mxGraphModel dx="1485" dy="833" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
+                <mxCell id="51" value="GitHub" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=22;fontStyle=1;arcSize=9;verticalAlign=top;fontColor=#666666;" vertex="1" parent="1">
+                    <mxGeometry x="910" y="488" width="210" height="143.5" as="geometry"/>
+                </mxCell>
                 <mxCell id="10" value="Red Hat OpenShift" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=22;fontStyle=1;align=center;verticalAlign=top;spacingLeft=11;spacingTop=9;arcSize=3;" parent="1" vertex="1">
                     <mxGeometry x="80" y="170" width="820" height="540" as="geometry"/>
                 </mxCell>
                 <mxCell id="intelligent-cd-ns" value="intelligent-cd" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=14;fontStyle=1;align=center;verticalAlign=top;spacingLeft=11;arcSize=5;" parent="1" vertex="1">
-                    <mxGeometry x="120" y="220" width="560" height="340" as="geometry"/>
+                    <mxGeometry x="120" y="220" width="560" height="370" as="geometry"/>
                 </mxCell>
                 <mxCell id="openshift-gitops-ns" value="openshift-gitops" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=14;fontStyle=1;verticalAlign=top;" parent="1" vertex="1">
-                    <mxGeometry x="690" y="322" width="189" height="78" as="geometry"/>
+                    <mxGeometry x="690" y="296" width="189" height="78" as="geometry"/>
                 </mxCell>
-                <mxCell id="external-services" value="External Services" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#0066CC;fontSize=22;fontStyle=1;arcSize=9;verticalAlign=top;" parent="1" vertex="1">
-                    <mxGeometry x="910" y="170" width="170" height="540" as="geometry"/>
+                <mxCell id="external-services" value="Models as a Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#0066CC;fontSize=22;fontStyle=1;arcSize=9;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="910" y="170" width="210" height="170" as="geometry"/>
                 </mxCell>
                 <mxCell id="12" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="gradio-ui" target="llama-stack" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="gradio-ui" value="Gradio UI&amp;nbsp;&lt;div&gt;(Chat Interface)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=12;" parent="1" vertex="1">
-                    <mxGeometry x="140" y="377" width="140" height="60" as="geometry"/>
+                    <mxGeometry x="140" y="391" width="140" height="60" as="geometry"/>
                 </mxCell>
-                <mxCell id="16" style="edgeStyle=none;html=1;exitX=1.007;exitY=0.886;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitPerimeter=0;" parent="1" source="llama-stack" target="22" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
+                <mxCell id="16" style="edgeStyle=none;html=1;exitX=1.007;exitY=0.886;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;exitPerimeter=0;" parent="1" target="22" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="455.98" y="559.94" as="sourcePoint"/>
+                    </mxGeometry>
                 </mxCell>
                 <mxCell id="llama-stack" value="Llama Stack&#xa;(AI Coordinator)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#6c8ebf;fontSize=12;verticalAlign=top;" parent="1" vertex="1">
-                    <mxGeometry x="315" y="262" width="140" height="290" as="geometry"/>
+                    <mxGeometry x="315" y="262" width="140" height="318" as="geometry"/>
                 </mxCell>
                 <mxCell id="argocd-server" value="ArgoCD Server" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=12;" parent="1" vertex="1">
-                    <mxGeometry x="724.5" y="347" width="120" height="40" as="geometry"/>
+                    <mxGeometry x="724.5" y="321" width="120" height="40" as="geometry"/>
                 </mxCell>
-                <mxCell id="github-com" value="GitHub.com" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=12;" parent="1" vertex="1">
-                    <mxGeometry x="935" y="482" width="120" height="76" as="geometry"/>
+                <mxCell id="github-com" value="API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="1035" y="540" width="65" height="76" as="geometry"/>
                 </mxCell>
                 <mxCell id="openshift-api" value="OpenShift API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=12;" parent="1" vertex="1">
-                    <mxGeometry x="724.5" y="423.5" width="120" height="40" as="geometry"/>
+                    <mxGeometry x="724.5" y="460.5" width="120" height="40" as="geometry"/>
                 </mxCell>
-                <mxCell id="conn3" value="" style="endArrow=classic;html=1;rounded=0;exitX=1.011;exitY=0.362;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitPerimeter=0;" parent="1" source="llama-stack" target="mcp-server" edge="1">
+                <mxCell id="conn3" value="" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="llama-stack" target="mcp-server" edge="1">
                     <mxGeometry width="50" height="50" relative="1" as="geometry">
                         <mxPoint x="760" y="460" as="sourcePoint"/>
                         <mxPoint x="810" y="410" as="targetPoint"/>
@@ -55,20 +60,14 @@
                         <mxPoint x="1000" y="420" as="targetPoint"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="label1" value="Chat&amp;nbsp;&lt;div&gt;Commands&lt;/div&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" parent="1" vertex="1">
-                    <mxGeometry x="260" y="380" width="80" height="20" as="geometry"/>
-                </mxCell>
                 <mxCell id="label3" value="Cluster Operations" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" parent="1" vertex="1">
-                    <mxGeometry x="450" y="421" width="80" height="20" as="geometry"/>
+                    <mxGeometry x="450" y="458" width="80" height="20" as="geometry"/>
                 </mxCell>
                 <mxCell id="label4" value="GitOps Operations" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" parent="1" vertex="1">
-                    <mxGeometry x="450" y="344" width="80" height="20" as="geometry"/>
-                </mxCell>
-                <mxCell id="label5" value="Git Operations" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" parent="1" vertex="1">
-                    <mxGeometry x="744.5" y="500" width="80" height="20" as="geometry"/>
+                    <mxGeometry x="450" y="318" width="80" height="20" as="geometry"/>
                 </mxCell>
                 <mxCell id="label6" value="API Calls" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" parent="1" vertex="1">
-                    <mxGeometry x="642.5" y="422" width="80" height="20" as="geometry"/>
+                    <mxGeometry x="642.5" y="459" width="80" height="20" as="geometry"/>
                 </mxCell>
                 <mxCell id="title" value="Intelligent CD - Logical Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;" parent="1" vertex="1">
                     <mxGeometry x="400" y="100" width="400" height="30" as="geometry"/>
@@ -82,54 +81,51 @@
                     </mxGeometry>
                 </mxCell>
                 <mxCell id="mcp-server" value="&lt;span style=&quot;color: rgb(0, 0, 0);&quot;&gt;ArgoCD&amp;nbsp;&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(0, 0, 0);&quot;&gt;MCP Server&lt;/span&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=12;" parent="1" vertex="1">
-                    <mxGeometry x="526" y="337" width="120" height="60" as="geometry"/>
+                    <mxGeometry x="526" y="311" width="120" height="60" as="geometry"/>
                 </mxCell>
                 <mxCell id="17" value="API Calls" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" parent="1" vertex="1">
-                    <mxGeometry x="644.5" y="347" width="80" height="20" as="geometry"/>
+                    <mxGeometry x="644.5" y="321" width="80" height="20" as="geometry"/>
                 </mxCell>
                 <mxCell id="21" style="edgeStyle=none;html=1;" parent="1" source="18" target="gradio-ui" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="18" value="User" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" parent="1" vertex="1">
-                    <mxGeometry x="18" y="377" width="30" height="60" as="geometry"/>
+                    <mxGeometry x="18" y="391" width="30" height="60" as="geometry"/>
                 </mxCell>
-                <mxCell id="22" value="&lt;div&gt;&lt;span style=&quot;color: rgb(0, 0, 0);&quot;&gt;GitHub&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(0, 0, 0);&quot;&gt;MCP Server&lt;/span&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=12;" parent="1" vertex="1">
-                    <mxGeometry x="526" y="490" width="120" height="60" as="geometry"/>
+                <mxCell id="22" value="&lt;div&gt;&lt;span style=&quot;color: rgb(102, 102, 102);&quot;&gt;GitHub&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(102, 102, 102);&quot;&gt;MCP Server&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(153, 153, 153); font-size: 10px;&quot;&gt;(Not Implemented)&lt;/span&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="940" y="548" width="80" height="60" as="geometry"/>
                 </mxCell>
                 <mxCell id="23" value="VectorDB" style="shape=datastore;whiteSpace=wrap;html=1;" parent="1" vertex="1">
-                    <mxGeometry x="380" y="489" width="60" height="42" as="geometry"/>
+                    <mxGeometry x="355" y="511.5" width="60" height="42" as="geometry"/>
                 </mxCell>
-                <mxCell id="26" style="edgeStyle=none;html=1;exitX=1.002;exitY=0.627;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitPerimeter=0;" parent="1" source="llama-stack" target="27" edge="1">
+                <mxCell id="26" style="edgeStyle=none;html=1;exitX=1.002;exitY=0.627;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitPerimeter=0;" parent="1" target="27" edge="1">
                     <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="450" y="410" as="sourcePoint"/>
-                        <mxPoint x="536" y="530" as="targetPoint"/>
+                        <mxPoint x="455.28" y="480.8299999999999" as="sourcePoint"/>
+                        <mxPoint x="536" y="567" as="targetPoint"/>
                     </mxGeometry>
                 </mxCell>
                 <mxCell id="27" value="&lt;div&gt;&lt;span style=&quot;color: rgb(0, 0, 0);&quot;&gt;OCP&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(0, 0, 0);&quot;&gt;MCP Server&lt;/span&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=12;" parent="1" vertex="1">
-                    <mxGeometry x="525" y="413.5" width="120" height="60" as="geometry"/>
-                </mxCell>
-                <mxCell id="28" value="&lt;div style=&quot;&quot;&gt;&lt;span style=&quot;background-color: transparent;&quot;&gt;Models as a Service&lt;/span&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=12;align=center;verticalAlign=top;" parent="1" vertex="1">
-                    <mxGeometry x="935" y="244.5" width="120" height="80" as="geometry"/>
+                    <mxGeometry x="525" y="450.5" width="120" height="60" as="geometry"/>
                 </mxCell>
                 <mxCell id="29" value="&lt;div style=&quot;&quot;&gt;&lt;span style=&quot;background-color: transparent;&quot;&gt;Llama&lt;/span&gt;&lt;/div&gt;&lt;div style=&quot;&quot;&gt;&lt;span style=&quot;background-color: transparent;&quot;&gt;4 Scout 17b&amp;nbsp;&lt;/span&gt;&lt;/div&gt;&lt;div style=&quot;&quot;&gt;&lt;span style=&quot;background-color: transparent;&quot;&gt;16e w4a16&lt;/span&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=12;align=center;verticalAlign=top;" parent="1" vertex="1">
-                    <mxGeometry x="950" y="268" width="90" height="49" as="geometry"/>
+                    <mxGeometry x="930" y="247" width="170" height="62" as="geometry"/>
                 </mxCell>
-                <mxCell id="30" value="" style="endArrow=classic;html=1;rounded=0;exitX=1.002;exitY=0.103;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" source="llama-stack" target="29" edge="1">
+                <mxCell id="30" value="" style="endArrow=classic;html=1;rounded=0;exitX=1.002;exitY=0.103;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" target="29" edge="1">
                     <mxGeometry width="50" height="50" relative="1" as="geometry">
-                        <mxPoint x="526" y="292" as="sourcePoint"/>
-                        <mxPoint x="945" y="530" as="targetPoint"/>
+                        <mxPoint x="455.28" y="276.87" as="sourcePoint"/>
+                        <mxPoint x="945" y="515" as="targetPoint"/>
                     </mxGeometry>
                 </mxCell>
                 <mxCell id="32" value="Admin" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" parent="1" vertex="1">
-                    <mxGeometry x="18" y="600.25" width="30" height="60" as="geometry"/>
+                    <mxGeometry x="18" y="624" width="30" height="60" as="geometry"/>
                 </mxCell>
                 <mxCell id="33" value="&lt;span style=&quot;color: rgb(0, 0, 0);&quot;&gt;Red Hat OpenShift AI&amp;nbsp;&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#FF3333;fontSize=14;fontStyle=1;verticalAlign=top;" parent="1" vertex="1">
-                    <mxGeometry x="690" y="570" width="189" height="120" as="geometry"/>
+                    <mxGeometry x="690" y="600" width="189" height="90" as="geometry"/>
                 </mxCell>
                 <mxCell id="34" value="intelligent-cd-pipelines" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=14;fontStyle=1;align=center;verticalAlign=top;spacingLeft=11;arcSize=12;" parent="1" vertex="1">
-                    <mxGeometry x="120" y="570.5" width="560" height="119.5" as="geometry"/>
+                    <mxGeometry x="120" y="600" width="560" height="90" as="geometry"/>
                 </mxCell>
-                <mxCell id="36" style="edgeStyle=none;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" target="42" edge="1">
+                <mxCell id="36" style="edgeStyle=none;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" target="42" edge="1" source="32">
                     <mxGeometry relative="1" as="geometry">
                         <mxPoint x="48" y="629.96" as="sourcePoint"/>
                         <mxPoint x="203.9999999999999" y="630.25" as="targetPoint"/>
@@ -140,20 +136,44 @@
                         <mxPoint x="410.0000000000001" y="602.25" as="sourcePoint"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="42" value="create-&lt;div&gt;urls-&lt;/div&gt;&lt;div&gt;list&lt;/div&gt;" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;" parent="1" vertex="1">
-                    <mxGeometry x="182" y="600.25" width="90" height="60" as="geometry"/>
+                <mxCell id="42" value="create-&lt;div&gt;urls&amp;nbsp;&lt;span style=&quot;background-color: transparent;&quot;&gt;list&lt;/span&gt;&lt;/div&gt;" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;" parent="1" vertex="1">
+                    <mxGeometry x="160" y="624" width="90" height="60" as="geometry"/>
                 </mxCell>
                 <mxCell id="43" value="generate-&lt;div&gt;documents&lt;/div&gt;" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;" parent="1" vertex="1">
-                    <mxGeometry x="275" y="600.25" width="90" height="60" as="geometry"/>
+                    <mxGeometry x="250" y="624" width="90" height="60" as="geometry"/>
                 </mxCell>
                 <mxCell id="44" value="ingest-&lt;div&gt;documents&lt;/div&gt;" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;" parent="1" vertex="1">
-                    <mxGeometry x="365" y="600.25" width="90" height="60" as="geometry"/>
+                    <mxGeometry x="340" y="624" width="90" height="60" as="geometry"/>
                 </mxCell>
                 <mxCell id="48" value="&lt;div&gt;Embeddings&lt;/div&gt;&lt;div&gt;model&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="330" y="432.5" width="110" height="46" as="geometry"/>
+                    <mxGeometry x="330" y="450.5" width="110" height="46" as="geometry"/>
                 </mxCell>
                 <mxCell id="50" value="Git&lt;div&gt;Operations&lt;/div&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" parent="1" vertex="1">
-                    <mxGeometry x="450" y="496" width="80" height="20" as="geometry"/>
+                    <mxGeometry x="450" y="537" width="80" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="53" value="ServiceNow" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#0066CC;fontSize=22;fontStyle=1;arcSize=9;verticalAlign=top;" vertex="1" parent="1">
+                    <mxGeometry x="910" y="350.5" width="210" height="123.5" as="geometry"/>
+                </mxCell>
+                <mxCell id="55" value="&lt;div style=&quot;&quot;&gt;Demo Instance&lt;br&gt;&lt;span style=&quot;color: rgb(153, 153, 153); font-size: 10px; font-weight: 400;&quot;&gt;(Not Implemented)&lt;/span&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=12;align=center;verticalAlign=middle;fontStyle=1;fontFamily=Helvetica;fontColor=default;" vertex="1" parent="1">
+                    <mxGeometry x="930" y="383" width="170" height="62" as="geometry"/>
+                </mxCell>
+                <mxCell id="56" value="&lt;div&gt;&lt;span style=&quot;color: rgb(0, 0, 0);&quot;&gt;ServiceNow&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(0, 0, 0);&quot;&gt;MCP Server&lt;br&gt;&lt;span style=&quot;color: rgb(153, 153, 153); font-size: 10px;&quot;&gt;(Not Implemented)&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=12;align=center;verticalAlign=middle;fontFamily=Helvetica;fontColor=default;" vertex="1" parent="1">
+                    <mxGeometry x="524.5" y="383" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="57" style="edgeStyle=none;html=1;exitX=1.002;exitY=0.627;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitPerimeter=0;" edge="1" target="56" parent="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="454.78" y="413.3299999999999" as="sourcePoint"/>
+                        <mxPoint x="535.5" y="499.5" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="58" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="56" target="55">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="654.28" y="413.9699999999999" as="sourcePoint"/>
+                        <mxPoint x="724.5" y="413.64" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="59" value="ServiceNow Operations" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+                    <mxGeometry x="450" y="390.25" width="80" height="20" as="geometry"/>
                 </mxCell>
             </root>
         </mxGraphModel>
