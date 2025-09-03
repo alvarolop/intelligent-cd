@@ -1176,9 +1176,7 @@ def initialize_client() -> tuple[LlamaStackClient, ChatTab, MCPTestTab, RAGTestT
     logger = get_logger("init")
     
     # ALL CONFIGURATION IN ONE PLACE - including environment variable reading
-    vector_db_id = os.getenv("VECTOR_DB_ID", "my_documents")
     llama_stack_url = os.getenv("LLAMA_STACK_URL", "http://localhost:8321")
-    model = os.getenv("DEFAULT_LLM_MODEL", "llama-3-2-3b")
     
     logger.info("=" * 60)
     logger.info("INITIALIZING LLAMA STACK CLIENT")
@@ -1195,6 +1193,11 @@ def initialize_client() -> tuple[LlamaStackClient, ChatTab, MCPTestTab, RAGTestT
         base_url=llama_stack_url,
         default_headers=extra_headers
     )
+
+    vector_db_id = os.getenv("VECTOR_DB_ID", "my_documents")
+    models = llama_stack_client.models.list()
+    first_model = next(m.identifier for m in models if m.model_type == "llm")
+    model = os.getenv("DEFAULT_LLM_MODEL", first_model)
     
     chat_tab = ChatTab(llama_stack_client, model=model, vector_db_id=vector_db_id)
     mcp_test_tab = MCPTestTab(llama_stack_client)

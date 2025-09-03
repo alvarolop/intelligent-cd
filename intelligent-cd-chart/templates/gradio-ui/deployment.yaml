@@ -40,8 +40,8 @@ spec:
               value: "7860"
             - name: LLAMA_STACK_URL
               value: "http://{{ .Values.llamaStack.name }}-service.{{ .Values.global.namespace }}:8321"
-            - name: DEFAULT_LLM_MODEL
-              value: "{{ .Values.inference.model }}"
+            # - name: DEFAULT_LLM_MODEL
+            #   value: "{{ .Values.inference.model }}"
             - name: TOOLGROUPS_DENYLIST
               value: '{{ .Values.gradioUI.env.TOOLGROUPS_DENYLIST | toJson }}'
             - name: ARGOCD_BASE_URL
