@@ -614,31 +614,12 @@ class SystemStatusTab:
         self.vector_db_id = vector_db_id
         self.logger = get_logger("system")  
     
-    def get_system_status(self) -> str:
-        """Get comprehensive system status with better structure"""
-        
-        # 1. Gradio Health
-        gradio_status = "✅ Gradio Application: Running and accessible"
-        
-        # Test MCP connection directly
-        self.logger.debug("Testing MCP connection directly...")
-        try:
-            # Test if we can list tools
-            tools = self.client.tools.list()
-            self.logger.info(f"MCP tools.list() returned: {len(tools)} tools")
-            
-            # Test if we can invoke a simple tool
-            if tools:
-                first_tool = tools[0]
-                self.logger.debug(f"First tool: {first_tool}")
-                if hasattr(first_tool, 'name'):
-                    self.logger.debug(f"First tool name: {first_tool.name}")
-        except Exception as e:
-            self.logger.error(f"MCP test failed: {str(e)}")
-            import traceback
-            self.logger.error(f"Traceback: {traceback.format_exc()}")
-        
-        # 2. Llama Stack Server Health and Version
+    def get_gradio_status(self) -> str:
+        """Get Gradio application status"""
+        return "✅ Gradio Application: Running and accessible"
+    
+    def get_llama_stack_status(self) -> list[str]:
+        """Get Llama Stack server health and version information"""
         llama_stack_status = []
         llama_stack_status.append("🚀 Llama Stack Server:")
         llama_stack_status.append(f"   • URL: {self.llama_stack_url}")
@@ -656,7 +637,10 @@ class SystemStatusTab:
             llama_stack_status.append("   • Status: ❌ Failed to connect to Llama Stack server")
             llama_stack_status.append(f"   • Error: {str(e)}")
         
-        # 3. LLM Service (Inference)
+        return llama_stack_status
+    
+    def get_llm_status(self) -> list[str]:
+        """Get LLM service status and test connectivity"""
         llm_status = []
         llm_status.append("🤖 LLM Service (Inference):")
         
@@ -687,29 +671,62 @@ class SystemStatusTab:
         
         llm_status.append(f"   • Response: ✅ Received {len(response_content)} characters")
         
-        # 4. RAG Server
-
+        return llm_status
+    
+    def get_rag_status(self) -> list[str]:
+        """Get RAG server status and vector database availability"""
         rag_status = []
         rag_status.append("📚 RAG Server:")
         
-        # Check if the RAG backend provides the specified vector_db_id
-        rag_vector_dbs = []
+        # Check 1: Test connection by calling list()
         try:
-            rag_vector_dbs = self.client.tool_runtime.rag_tool.list_vector_dbs()
+            rag_vector_dbs = self.client.vector_dbs.list()
+            rag_status.append("   • Connection: ✅ RAG backend responding")
         except Exception as e:
-            rag_status.append("   • Status: ❌ Failed to connect to RAG backend")
+            rag_status.append("   • Connection: ❌ Failed to connect to RAG backend")
             rag_status.append(f"   • Error: {str(e)}")
-            rag_vector_dbs = []
-
-        if self.vector_db_id in rag_vector_dbs:
-            rag_status.append(f"   • Status: ✅ RAG vector DB '{self.vector_db_id}' is available")
+            return rag_status
+        
+        # Check 2: Show if self.vector_db_id is included in the list
+        vector_db_ids = [db.identifier for db in rag_vector_dbs] if rag_vector_dbs else []
+        if self.vector_db_id in vector_db_ids:
+            rag_status.append(f"   • Target DB: ✅ Vector DB '{self.vector_db_id}' found in list")
         else:
-            rag_status.append(f"   • Status: ❌ RAG vector DB '{self.vector_db_id}' not found")
-            rag_status.append(f"   • Available vector DBs: {rag_vector_dbs if rag_vector_dbs else 'None'}")
+            rag_status.append(f"   • Target DB: ❌ Vector DB '{self.vector_db_id}' not found in list")
+        
+        # Check 3: Show all identifiers from the list
+        if vector_db_ids:
+            rag_status.append(f"   • Available DBs: Found {len(vector_db_ids)} vector database(s)")
+            rag_status.append("   • DB Identifiers:")
+            for db_id in vector_db_ids:
+                rag_status.append(f"      - {db_id}")
+        else:
+            rag_status.append("   • Available DBs: No vector databases found")
 
-        # 5. MCP Server
+        return rag_status
+    
+    def get_mcp_status(self) -> list[str]:
+        """Get MCP server status and tool information"""
         mcp_status = []
         mcp_status.append("☸️ MCP Server:")
+        
+        # Test MCP connection directly
+        self.logger.debug("Testing MCP connection directly...")
+        try:
+            # Test if we can list tools
+            tools = self.client.tools.list()
+            self.logger.info(f"MCP tools.list() returned: {len(tools)} tools")
+            
+            # Test if we can invoke a simple tool
+            if tools:
+                first_tool = tools[0]
+                self.logger.debug(f"First tool: {first_tool}")
+                if hasattr(first_tool, 'name'):
+                    self.logger.debug(f"First tool name: {first_tool.name}")
+        except Exception as e:
+            self.logger.error(f"MCP test failed: {str(e)}")
+            import traceback
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
         
         # List tools to check MCP server connectivity
         tools = self.client.tools.list()
@@ -725,21 +742,26 @@ class SystemStatusTab:
             for toolgroup_id in toolgroups:
                 mcp_status.append(f"      - {toolgroup_id}")
         
+        return mcp_status
+    
+    def get_system_status(self) -> str:
+        """Get comprehensive system status by combining all component statuses"""
+        
         # Combine all status information
         full_status = "\n".join([
             "=" * 60,
             "🔍 SYSTEM STATUS REPORT",
             "=" * 60,
             "",
-            gradio_status,
+            self.get_gradio_status(),
             "",
-            "\n".join(llama_stack_status),
+            "\n".join(self.get_llama_stack_status()),
             "",
-            "\n".join(llm_status),
+            "\n".join(self.get_llm_status()),
             "",
-            "\n".join(rag_status),
+            "\n".join(self.get_rag_status()),
             "",
-            "\n".join(mcp_status),
+            "\n".join(self.get_mcp_status()),
             "",
             "=" * 60
         ])
@@ -1181,10 +1203,7 @@ def initialize_client() -> tuple[LlamaStackClient, ChatTab, MCPTestTab, RAGTestT
     logger.info("=" * 60)
     logger.info("INITIALIZING LLAMA STACK CLIENT")
     logger.info("=" * 60)
-    
-    # Log configuration summary
-    logger.info(f"Configuration: URL={llama_stack_url}, Model={model}")
-    
+
     extra_headers = get_extra_headers_config()
     logger.info(f"Extra headers: {extra_headers}")
 
@@ -1198,6 +1217,9 @@ def initialize_client() -> tuple[LlamaStackClient, ChatTab, MCPTestTab, RAGTestT
     models = llama_stack_client.models.list()
     first_model = next(m.identifier for m in models if m.model_type == "llm")
     model = os.getenv("DEFAULT_LLM_MODEL", first_model)
+
+    # Log configuration summary
+    logger.info(f"Configuration: URL={llama_stack_url}, Model={model}")
     
     chat_tab = ChatTab(llama_stack_client, model=model, vector_db_id=vector_db_id)
     mcp_test_tab = MCPTestTab(llama_stack_client)
