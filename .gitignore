@@ -1,3 +1,5 @@
 app-intelligent-cd-ignore.yaml
-architecture-v2.drawio
+docs/images/architecture-v*
 auto-install.sh
+ingest-pipeline.yaml
+architecture-v*.drawio
