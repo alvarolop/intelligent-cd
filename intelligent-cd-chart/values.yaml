@@ -14,9 +14,24 @@ llamaStack:
   route:
     enabled: false
 
+pipelines:
+  enabled: true
+  namespaceSuffix: "-pipelines"
+  initJob:
+    image: quay.io/alopezme/aws-cli:latest
+  connection:
+    secretName: dashboard-dspa-secret
+    minioUsername: "minio"
+    minioPassword: "minio123"
+    minioEndpoint: "minio.minio.svc.cluster.local"
+    minioPort: '9000'
+    minioRegion: "none"
+    scheme: "http"
+
 RAG:
-  enabled: false
-  # TODO: Add RAG configuration
+  enabled: true
+  vector_db_id: "my_documents"
+
 
 gradioUI:
   name: gradio

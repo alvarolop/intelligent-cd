@@ -1,0 +1,61 @@
+{{- if .Values.pipelines.enabled }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name:  {{ .Values.global.namespace }}{{ .Values.pipelines.namespaceSuffix }}-create-s3-bucket
+  namespace:  {{ .Values.global.namespace }}{{ .Values.pipelines.namespaceSuffix }}
+  labels:
+    app:  {{ .Values.global.namespace }}
+    component: s3-bucket-creation
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  ttlSecondsAfterFinished: 0
+  template:
+    metadata:
+      labels:
+        app:  {{ .Values.global.namespace }}
+        component: s3-bucket-creation
+    spec:
+      containers:
+      - name: s3-bucket-creator
+        image: {{ .Values.pipelines.initJob.image }}
+        imagePullPolicy: Always
+        command: ["/bin/bash"]
+        args:
+        - -c
+        - |
+          #!/bin/bash
+          AWS_S3_BUCKET="{{ .Values.global.namespace }}{{ .Values.pipelines.namespaceSuffix }}-{{ .Values.pipelines.connection.secretName }}"
+          AWS_ENDPOINT_URL="{{ .Values.pipelines.connection.scheme }}://{{ .Values.pipelines.connection.minioEndpoint }}:{{ .Values.pipelines.connection.minioPort }}"
+          export AWS_ACCESS_KEY_ID={{ .Values.pipelines.connection.minioUsername }}
+          export AWS_SECRET_ACCESS_KEY={{ .Values.pipelines.connection.minioPassword }}
+          export AWS_DEFAULT_REGION={{ .Values.pipelines.connection.minioRegion }}
+
+          # # Print environment variables
+          # echo -e "\n=============="
+          # echo -e "ENVIRONMENT VARIABLES:"
+          # echo -e " * AWS_ENDPOINT_URL: $AWS_ENDPOINT_URL"
+          # echo -e " * AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID"
+          # echo -e " * AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY"
+          # echo -e " * AWS_DEFAULT_REGION: $AWS_DEFAULT_REGION"
+          # echo -e " * AWS_S3_BUCKET: $AWS_S3_BUCKET"
+          # echo -e "==============\n"
+
+          # Check if the bucket exists in MinIO
+          if aws --endpoint-url $AWS_ENDPOINT_URL --no-verify-ssl s3api head-bucket --bucket $AWS_S3_BUCKET &> /dev/null; then
+              echo -e "Check. S3 bucket already exists in MinIO, do nothing."
+          else
+              echo -e "Check. Creating S3 bucket in MinIO..."
+              aws --endpoint-url $AWS_ENDPOINT_URL --no-verify-ssl s3api create-bucket \
+                  --bucket $AWS_S3_BUCKET \
+                  --region $AWS_DEFAULT_REGION \
+                  --create-bucket-configuration LocationConstraint=$AWS_DEFAULT_REGION
+          fi
+
+      restartPolicy: Never
+  backoffLimit: 3
+{{- end }}
