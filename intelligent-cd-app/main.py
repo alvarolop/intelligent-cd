@@ -4,8 +4,6 @@ import os
 import logging
 from typing import List, Dict
 from llama_stack_client import LlamaStackClient , Agent
-# from llama_stack_client.lib.agents.react.agent import ReActAgent
-# from llama_stack_client.lib.agents.react.tool_parser import ReActOutput
 
 """
 Intelligent CD Chatbot - Production-Ready Logging Configuration
@@ -91,78 +89,32 @@ def get_logger(name: str):
     return logger
 
 
-model_prompt = """You are a Kubernetes/OpenShift cluster management assistant with access to MCP tools.
+model_prompt = """<|begin_of_text|><|header_start|>system<|header_end|>
 
-CRITICAL: You MUST EXECUTE MCP tools to get real cluster data. NEVER generate fake data or just describe what you would do.
+You are an expert Kubernetes/OpenShift cluster management assistant with access to MCP tools. You're companionable and confident, able to help users navigate complex cluster operations with clear, actionable insights.
+
+You have direct access to real cluster data through MCP tools and must use them to provide accurate, up-to-date information. You never generate fake data or describe hypothetical scenarios when real data is available.
 
 AVAILABLE TOOLS: {tool_groups}
 
-WORKFLOW:
-1. Analyze the user's request
-2. EXECUTE the appropriate MCP tool(s) using the tool_calls mechanism
-3. Wait for the tool results
-4. Present ONLY the real data from the tools
-5. Explain what the data means
+Your approach:
+1. Analyze what the user needs
+2. Execute the appropriate MCP tool(s) using tool_calls
+3. Present the real data clearly
+4. Explain what it means and suggest next steps if helpful
 
-EXAMPLES:
-- "List pods in namespace X" → EXECUTE pods_list_in_namespace(namespace="X") and show the actual results
-- "Show services" → EXECUTE services_list() and display the real service information
-- "Get deployment Y" → EXECUTE deployment_get(name="Y", namespace="default") and show deployment details
+Examples of how you work:
+- "List pods in namespace X" → Execute pods_list_in_namespace(namespace="X") and show the results
+- "Show services" → Execute services_list() and display the service information  
+- "Get deployment Y" → Execute deployment_get(name="Y", namespace="default") and show deployment details
 
-IMPORTANT RULES:
-- ALWAYS use tool_calls to execute MCP functions
-- NEVER generate fake pod names, statuses, or data
-- ONLY show information that comes from actual tool execution
-- If a tool fails, report the error, don't make up data
+Key principles:
+- Always use tool_calls to execute MCP functions
+- Only show information from actual tool execution
+- If a tool fails, report the error clearly
+- Be helpful but don't over-explain when users just want quick answers
 
-Remember: You are connected to a real cluster. Use the tools to get real information."""
-
-# model_prompt = """You are an expert software engineer and DevOps specialist powered by ReAct (Reason-then-Act) methodology. Your primary goal is to help users understand, configure, and troubleshoot application systems through systematic reasoning and intelligent tool usage.
-
-# **ReAct Reasoning Framework:**
-
-# 1. **REASON:** Before taking any action, clearly think through:
-#    - What information do I need to solve this problem?
-#    - Which tools are most appropriate for gathering this information?
-#    - What is my step-by-step approach to address the user's request?
-
-# 2. **ACT:** Execute your reasoning by using the appropriate tools:
-#    - Use mcp::openshift for real-time system data, pod status, logs, and cluster information
-#    - Use builtin::rag to search knowledge base for configuration guides, troubleshooting procedures, and best practices
-#    - Combine multiple tools when needed to get complete information
-
-# 3. **OBSERVE:** Analyze the results from your actions and determine:
-#    - Did I get the information I need?
-#    - Do I need additional data or clarification?
-#    - What patterns or issues can I identify?
-
-# 4. **REASON AGAIN:** Based on observations, determine next steps:
-#    - Continue gathering more specific information
-#    - Synthesize findings into actionable recommendations
-#    - Provide clear explanations and solutions
-
-# **Standard Operating Procedure for Problem Solving:**
-
-# When a user reports application issues (API failures, database problems, performance issues, etc.):
-# - **REASON**: Break down the problem into specific diagnostic steps
-# - **ACT**: Use tools systematically to gather both real-time system data AND documentation
-# - **OBSERVE**: Analyze results and correlate system state with known patterns
-# - **REASON & ACT**: Provide synthesized recommendations with supporting evidence
-
-# **Your Expertise Areas:**
-# - Application deployment and configuration troubleshooting
-# - Discount calculation algorithms and business logic
-# - System monitoring, logging, and performance analysis
-# - API endpoint management and integration patterns
-# - Database connectivity and optimization
-# - Container orchestration and Kubernetes diagnostics
-
-# Always reason through problems step-by-step, use tools intelligently, and provide clear, actionable guidance based on both real-time data and documented best practices.
-
-# **CRITICAL**: When you need to use tools, set "answer": null in your response. Only provide "answer" with actual results after tool execution is complete.
-
-# **AVAILABLE TOOLS: {tool_groups}**
-# """
+You're connected to a real cluster - use the tools to get real information.<|eot|><|header_start|>user<|header_end|>"""
 
 class ChatTab:
     """Handles chat functionality with Llama Stack LLM"""
@@ -172,7 +124,7 @@ class ChatTab:
         self.model = model
         self.vector_db_id = vector_db_id
         self.logger = get_logger("chat")
-        self.sampling_params = {"temperature": 0.1, "max_tokens": 4096}
+        self.sampling_params = {"temperature": 0.1, "max_tokens": 4096, "max_new_tokens": 4096, "strategy": {"type": "greedy"} }
 
         # Initialize available tools once during initialization
         self.tools_array = self._get_available_tools()
@@ -201,7 +153,7 @@ class ChatTab:
 
         # Always add the RAG tool configuration as a dictionary to the filtered_tool_groups list
         # https://llama-stack.readthedocs.io/en/latest/building_applications/rag.html
-        filtered_tool_groups.append({"name": "builtin::rag", "args": {"vector_db_ids":  ["self.vector_db_id"], "top_k": 5}})
+        # filtered_tool_groups.append({"name": "builtin::rag", "args": {"vector_db_ids":  ["self.vector_db_id"], "top_k": 5}})
         
         self.logger.info(f"Filtered tool groups: {filtered_tool_groups}")
         if denylist:
@@ -229,6 +181,7 @@ class ChatTab:
             model=self.model,
             instructions=formatted_prompt,
             tools=self.tools_array,
+            tool_config={"tool_choice": "auto"},  # Ensure tools are actually executed
             # response_format={
             #     "type": "json_schema",
             #     "json_schema": ReActOutput.model_json_schema(),
