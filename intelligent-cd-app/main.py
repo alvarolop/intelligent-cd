@@ -3,8 +3,9 @@ import json
 import os
 import logging
 from typing import List, Dict
-from llama_stack_client import LlamaStackClient, Agent
-from urllib.parse import urlparse
+from llama_stack_client import LlamaStackClient , Agent
+# from llama_stack_client.lib.agents.react.agent import ReActAgent
+# from llama_stack_client.lib.agents.react.tool_parser import ReActOutput
 
 """
 Intelligent CD Chatbot - Production-Ready Logging Configuration
@@ -116,14 +117,52 @@ IMPORTANT RULES:
 
 Remember: You are connected to a real cluster. Use the tools to get real information."""
 
-# # Example queries to test different capabilities
-# example_queries = [
-#     "List all pods in the intelligent-cd namespace",
-#     "Show me the current cluster events",
-#     "What namespaces exist in the cluster?",
-#     "List all pods across all namespaces",
-#     "Show me the top resource consumers in the cluster"
-# ]
+# model_prompt = """You are an expert software engineer and DevOps specialist powered by ReAct (Reason-then-Act) methodology. Your primary goal is to help users understand, configure, and troubleshoot application systems through systematic reasoning and intelligent tool usage.
+
+# **ReAct Reasoning Framework:**
+
+# 1. **REASON:** Before taking any action, clearly think through:
+#    - What information do I need to solve this problem?
+#    - Which tools are most appropriate for gathering this information?
+#    - What is my step-by-step approach to address the user's request?
+
+# 2. **ACT:** Execute your reasoning by using the appropriate tools:
+#    - Use mcp::openshift for real-time system data, pod status, logs, and cluster information
+#    - Use builtin::rag to search knowledge base for configuration guides, troubleshooting procedures, and best practices
+#    - Combine multiple tools when needed to get complete information
+
+# 3. **OBSERVE:** Analyze the results from your actions and determine:
+#    - Did I get the information I need?
+#    - Do I need additional data or clarification?
+#    - What patterns or issues can I identify?
+
+# 4. **REASON AGAIN:** Based on observations, determine next steps:
+#    - Continue gathering more specific information
+#    - Synthesize findings into actionable recommendations
+#    - Provide clear explanations and solutions
+
+# **Standard Operating Procedure for Problem Solving:**
+
+# When a user reports application issues (API failures, database problems, performance issues, etc.):
+# - **REASON**: Break down the problem into specific diagnostic steps
+# - **ACT**: Use tools systematically to gather both real-time system data AND documentation
+# - **OBSERVE**: Analyze results and correlate system state with known patterns
+# - **REASON & ACT**: Provide synthesized recommendations with supporting evidence
+
+# **Your Expertise Areas:**
+# - Application deployment and configuration troubleshooting
+# - Discount calculation algorithms and business logic
+# - System monitoring, logging, and performance analysis
+# - API endpoint management and integration patterns
+# - Database connectivity and optimization
+# - Container orchestration and Kubernetes diagnostics
+
+# Always reason through problems step-by-step, use tools intelligently, and provide clear, actionable guidance based on both real-time data and documented best practices.
+
+# **CRITICAL**: When you need to use tools, set "answer": null in your response. Only provide "answer" with actual results after tool execution is complete.
+
+# **AVAILABLE TOOLS: {tool_groups}**
+# """
 
 class ChatTab:
     """Handles chat functionality with Llama Stack LLM"""
@@ -133,7 +172,7 @@ class ChatTab:
         self.model = model
         self.vector_db_id = vector_db_id
         self.logger = get_logger("chat")
-        self.sampling_params = {"temperature": 0.7, "max_tokens": 4096, "strategy": {"type": "greedy"}}
+        self.sampling_params = {"temperature": 0.1, "max_tokens": 4096}
 
         # Initialize available tools once during initialization
         self.tools_array = self._get_available_tools()
@@ -159,7 +198,12 @@ class ChatTab:
         
         # Filter out denylisted toolgroups
         filtered_tool_groups = [tg for tg in tool_groups if tg not in denylist]
+
+        # Always add the RAG tool configuration as a dictionary to the filtered_tool_groups list
+        # https://llama-stack.readthedocs.io/en/latest/building_applications/rag.html
+        filtered_tool_groups.append({"name": "builtin::rag", "args": {"vector_db_ids":  ["self.vector_db_id"], "top_k": 5}})
         
+        self.logger.info(f"Filtered tool groups: {filtered_tool_groups}")
         if denylist:
             self.logger.info(f"Tools: {len(filtered_tool_groups)}/{len(tool_groups)} available (filtered)")
         else:
@@ -169,25 +213,26 @@ class ChatTab:
     
     def _initialize_agent(self) -> tuple[Agent, str]:
         """Initialize agent and session that will be reused for the entire chat"""
-        # Convert tools array to string for the model prompt
-        tools_string = ", ".join(self.tools_array) if self.tools_array else "No tools available"
-        formatted_prompt = model_prompt.format(tool_groups=tools_string)
+        
+        formatted_prompt = model_prompt.format(tool_groups=self.tools_array)
 
         # Log agent creation details
         self.logger.info("=" * 60)
-        self.logger.info("CREATING AGENT")
+        self.logger.info("CREATING Agent")
         self.logger.info("=" * 60)
         self.logger.info(f"Model: {self.model}")
         self.logger.info(f"Toolgroups available ({len(self.tools_array)}): {self.tools_array}")
         self.logger.info(f"Sampling params: {self.sampling_params}")
 
-        
         agent = Agent(
-            self.client,
+            client=self.client,
             model=self.model,
             instructions=formatted_prompt,
             tools=self.tools_array,
-            tool_config={"tool_choice": "auto"},  # Ensure tools are actually executed
+            # response_format={
+            #     "type": "json_schema",
+            #     "json_schema": ReActOutput.model_json_schema(),
+            # },
             sampling_params=self.sampling_params
         )
         
@@ -239,12 +284,32 @@ class ChatTab:
             import traceback
             self.logger.error(f"Traceback: {traceback.format_exc()}")
             raise e
+
+        # Print detailed response information
+        print("\n📋 AGENT RESPONSE:")
+        print("=" * 50)
+            
+        # Additional debugging for tool calls
+        if hasattr(response, 'steps'):
+            print(f"🔄 Response has {len(response.steps)} steps")
+            for i, step in enumerate(response.steps):
+                print(f"   Step {i+1}: {type(step)} - {getattr(step, 'step_type', 'unknown')}")
+                if hasattr(step, 'tool_calls') and step.tool_calls:
+                    for tool_call in step.tool_calls:
+                        print(f"      Tool: {tool_call.tool_name}")
         
-        # Check if the turn has steps (tool executions)
-        if hasattr(response, 'steps') and response.steps:
-            self.logger.info(f"✅ Turn completed with {len(response.steps)} tool executions")
+        print(response)
+        print(f"\n💬 Response:")
+        print(response.output_message.content)
+
+        
+        # Check if tools were used
+        if hasattr(response, 'tool_calls') and response.tool_calls:
+            print(f"🔧 Tools used: {[tool.tool_name for tool in response.tool_calls]}")
+            for tool_call in response.tool_calls:
+                print(f"   - {tool_call.tool_name}: {tool_call.arguments}")
         else:
-            self.logger.warning("⚠️ Turn completed without tool executions")
+            print("🔧 No tools were used in this response")
         
         # Extract response content from the turn
         if hasattr(response, 'output_message') and hasattr(response.output_message, 'content'):
@@ -967,6 +1032,7 @@ def create_demo(chat_tab: ChatTab, mcp_test_tab: MCPTestTab, rag_test_tab: RAGTe
                                     label="💬 Chat with AI Assistant",
                                     show_label=False,
                                     avatar_images=["assets/chatbot.png", "assets/chatbot.png"],
+                                    allow_file_downloads=True,
                                     type="messages",
                                     layout="panel"
                                 )
@@ -979,6 +1045,7 @@ def create_demo(chat_tab: ChatTab, mcp_test_tab: MCPTestTab, rag_test_tab: RAGTe
                                             label="Message",
                                             show_label=False,
                                             placeholder="Ask me about Kubernetes, GitOps, or OpenShift deployments...",
+                                            value="Using the resources_list tool from the MCP Server for OpenShift, list the pods in the namespace intelligent-cd and show the name, container image and status of each pod.",
                                             lines=2,
                                             max_lines=3
                                         )
@@ -1229,6 +1296,7 @@ def initialize_client() -> tuple[LlamaStackClient, ChatTab, MCPTestTab, RAGTestT
     logger.info("✅ All components initialized successfully")
     logger.info("=" * 60)
     return chat_tab, mcp_test_tab, rag_test_tab, system_status_tab
+
 
 def main():
     """Main function to launch the Gradio app"""
