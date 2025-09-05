@@ -161,8 +161,7 @@ class ChatTab:
         
         # Initialize agent and session for the entire chat
         self.agent, self.session_id = self._initialize_agent()
-
-    
+   
     def _get_available_tools(self) -> list:
         """Get available tools and filter based on denylist configuration"""
         tools = self.client.tools.list()
@@ -183,7 +182,7 @@ class ChatTab:
 
         # Always add the RAG tool configuration as a dictionary to the filtered_tool_groups list
         # https://llama-stack.readthedocs.io/en/latest/building_applications/rag.html
-        # filtered_tool_groups.append({"name": "builtin::rag", "args": {"vector_db_ids":  ["self.vector_db_id"], "top_k": 5}})
+        filtered_tool_groups.append({"name": "builtin::rag", "args": {"vector_db_ids":  [self.vector_db_id], "top_k": 5}})
         
         self.logger.info(f"Filtered tool groups: {filtered_tool_groups}")
         if denylist:
