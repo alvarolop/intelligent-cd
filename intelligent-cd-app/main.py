@@ -3,7 +3,9 @@ import json
 import os
 import logging
 from typing import List, Dict
-from llama_stack_client import LlamaStackClient , Agent
+from llama_stack_client import LlamaStackClient
+from llama_stack_client.lib.agents.react.agent import ReActAgent
+from llama_stack_client.lib.agents.react.tool_parser import ReActOutput
 
 """
 Intelligent CD Chatbot - Production-Ready Logging Configuration
@@ -91,28 +93,56 @@ def get_logger(name: str):
 
 model_prompt = """<|begin_of_text|><|header_start|>system<|header_end|>
 
-You are an expert Kubernetes/OpenShift cluster management assistant with access to MCP tools. You're companionable and confident, able to help users navigate complex cluster operations with clear, actionable insights.
+You are an expert software engineer and DevOps specialist powered by ReAct (Reason-then-Act) methodology. Your primary goal is to help users understand, configure, and troubleshoot Kubernetes/OpenShift application systems through systematic reasoning and intelligent tool usage.
 
-You have direct access to real cluster data through MCP tools and must use them to provide accurate, up-to-date information. You never generate fake data or describe hypothetical scenarios when real data is available.
+**ReAct Reasoning Framework:**
 
-AVAILABLE TOOLS: {tool_groups}
+1. **REASON:** Before taking any action, clearly think through:
+   - What information do I need to solve this problem?
+   - Which MCP tools are most appropriate for gathering this information?
+   - What is my step-by-step approach to address the user's request?
 
-Your approach:
-1. Analyze what the user needs
-2. Execute the appropriate MCP tool(s) using tool_calls
-3. Present the real data clearly
-4. Explain what it means and suggest next steps if helpful
+2. **ACT:** Execute your reasoning by using the appropriate tools:
+   - Use MCP tools for real-time cluster data, pod status, logs, and system information
+   - Use builtin::rag to search knowledge base for configuration guides, troubleshooting procedures, and best practices
+   - Combine multiple tools when needed to get complete information
 
-Examples of how you work:
-- "List pods in namespace X" → Execute pods_list_in_namespace(namespace="X") and show the results
-- "Show services" → Execute services_list() and display the service information  
-- "Get deployment Y" → Execute deployment_get(name="Y", namespace="default") and show deployment details
+3. **OBSERVE:** Analyze the results from your actions and determine:
+   - Did I get the information I need?
+   - Do I need additional data or clarification?
+   - What patterns or issues can I identify?
 
-Key principles:
-- Always use tool_calls to execute MCP functions
-- Only show information from actual tool execution
-- If a tool fails, report the error clearly
+4. **REASON AGAIN:** Based on observations, determine next steps:
+   - Continue gathering more specific information
+   - Synthesize findings into actionable recommendations
+   - Provide clear explanations and solutions
+
+**Standard Operating Procedure for Problem Solving:**
+
+When a user reports application issues (API failures, database problems, performance issues, etc.):
+- **REASON**: Break down the problem into specific diagnostic steps
+- **ACT**: Use MCP tools systematically to gather both real-time system data AND documentation
+- **OBSERVE**: Analyze results and correlate system state with known patterns
+- **REASON & ACT**: Provide synthesized recommendations with supporting evidence
+
+**Your Expertise Areas:**
+- Kubernetes/OpenShift cluster management and troubleshooting
+- Application deployment and configuration troubleshooting
+- GitOps workflows and deployment strategies
+- System monitoring, logging, and performance analysis
+- Container orchestration and pod diagnostics
+- Service mesh and networking troubleshooting
+
+**Available Tools:** {tool_groups}
+
+**Key Principles:**
+- Always use tool_calls to execute MCP functions for real cluster data
+- Never generate fake data or describe hypothetical scenarios when real data is available
+- Combine real-time system data with knowledge base searches for comprehensive solutions
+- Provide clear, actionable guidance based on both real-time data and documented best practices
 - Be helpful but don't over-explain when users just want quick answers
+
+**CRITICAL**: When you need to use tools, set "answer": null in your response. Only provide "answer" with actual results after tool execution is complete.
 
 You're connected to a real cluster - use the tools to get real information.<|eot|><|header_start|>user<|header_end|>"""
 
@@ -163,33 +193,33 @@ class ChatTab:
         
         return filtered_tool_groups
     
-    def _initialize_agent(self) -> tuple[Agent, str]:
+    def _initialize_agent(self) -> tuple[ReActAgent, str]:
         """Initialize agent and session that will be reused for the entire chat"""
         
         formatted_prompt = model_prompt.format(tool_groups=self.tools_array)
 
         # Log agent creation details
         self.logger.info("=" * 60)
-        self.logger.info("CREATING Agent")
+        self.logger.info("CREATING ReActAgent")
         self.logger.info("=" * 60)
         self.logger.info(f"Model: {self.model}")
         self.logger.info(f"Toolgroups available ({len(self.tools_array)}): {self.tools_array}")
         self.logger.info(f"Sampling params: {self.sampling_params}")
 
-        agent = Agent(
+        agent = ReActAgent(
             client=self.client,
             model=self.model,
             instructions=formatted_prompt,
             tools=self.tools_array,
             tool_config={"tool_choice": "auto"},  # Ensure tools are actually executed
-            # response_format={
-            #     "type": "json_schema",
-            #     "json_schema": ReActOutput.model_json_schema(),
-            # },
+            response_format={
+                "type": "json_schema",
+                "json_schema": ReActOutput.model_json_schema(),
+            },
             sampling_params=self.sampling_params
         )
         
-        self.logger.info("✅ Agent created successfully")
+        self.logger.info("✅ ReActAgent created successfully")
 
         # Create session for the agent
         session = agent.create_session(session_name="OCP_Chat_Session")
@@ -206,20 +236,34 @@ class ChatTab:
     
     def chat_completion(self, message: str, chat_history: List[Dict[str, str]]) -> tuple:
         """Handle chat with LLM using Agent → Session → Turn structure"""
+        from gradio import ChatMessage
+        
         # Add user message to history
-        chat_history.append({"role": "user", "content": message})
+        chat_history.append(ChatMessage(role="user", content=message))
         
-        # Get LLM response using Agent API
-        result = self._execute_agent_turn(message)
+        # Get LLM response using Agent API with thinking steps
+        result, thinking_steps = self._execute_agent_turn_with_thinking(message)
         
-        # Add assistant response to history
-        chat_history.append({"role": "assistant", "content": result})
+        # Add thinking steps as collapsible sections
+        if thinking_steps:
+            for i, step in enumerate(thinking_steps):
+                chat_history.append(ChatMessage(
+                    role="assistant", 
+                    content=step["content"],
+                    metadata={"title": step["title"]}
+                ))
+        
+        # Add final assistant response
+        chat_history.append(ChatMessage(role="assistant", content=result))
         
         return chat_history, ""
     
-    def _execute_agent_turn(self, message: str) -> str:
-        """Execute a single turn using the persistent agent and session"""
-        self.logger.debug(f"Executing agent turn with {len(self.tools_array)} available tools")
+    def _execute_agent_turn_with_thinking(self, message: str) -> tuple[str, list]:
+        """Execute agent turn and capture thinking steps for display"""
+        import json
+        self.logger.debug(f"Executing agent turn with thinking capture")
+        
+        thinking_steps = []
         
         try:
             response = self.agent.create_turn(
@@ -230,50 +274,103 @@ class ChatTab:
                     }
                 ],
                 session_id=self.session_id,
-                stream=False,  # No streaming for chat interface
+                stream=False,  # Keep non-streaming for now
             )
+            
+            # Debug: Print response structure (keep for logging)
+            self.logger.info(f"Response type: {type(response)}")
+            self.logger.info(f"Response attributes: {dir(response)}")
+            
+            # Extract thinking steps from response.steps if available
+            if hasattr(response, 'steps') and response.steps:
+                self.logger.info(f"Found {len(response.steps)} steps")
+                for i, step in enumerate(response.steps):
+                    self.logger.info(f"Step {i}: {type(step)} - {dir(step)}")
+                    
+                    # Parse ReActAgent step structure
+                    step_content = ""
+                    step_title = f"Step {i+1}"
+                    
+                    # Check if this is an InferenceStep with api_model_response
+                    if hasattr(step, 'api_model_response') and hasattr(step.api_model_response, 'content'):
+                        try:
+                            # Parse the JSON content from the ReActAgent response
+                            content_json = json.loads(step.api_model_response.content)
+                            
+                            # Extract thought if available
+                            if 'thought' in content_json and content_json['thought']:
+                                step_content = content_json['thought']
+                                step_title = "🧠 Thinking"
+                                thinking_steps.append({
+                                    "title": step_title,
+                                    "content": step_content.strip()
+                                })
+                            
+                            # Extract action if available
+                            if 'action' in content_json and content_json['action']:
+                                action = content_json['action']
+                                if isinstance(action, dict) and 'tool_name' in action:
+                                    action_content = f"Using tool: {action['tool_name']}"
+                                    if 'tool_params' in action and action['tool_params']:
+                                        params_str = ", ".join([f"{p.get('name', 'param')}={p.get('value', '')}" for p in action['tool_params']])
+                                        action_content += f" with parameters: {params_str}"
+                                    
+                                    thinking_steps.append({
+                                        "title": "🔧 Action",
+                                        "content": action_content
+                                    })
+                            
+                            # Extract answer if available (this will be the final response)
+                            if 'answer' in content_json and content_json['answer']:
+                                step_content = content_json['answer']
+                                step_title = "📋 Result"
+                                thinking_steps.append({
+                                    "title": step_title,
+                                    "content": step_content.strip()
+                                })
+                                
+                        except json.JSONDecodeError as e:
+                            self.logger.warning(f"Failed to parse JSON content from step {i}: {e}")
+                            # Fallback to string representation
+                            step_content = str(step.api_model_response.content)
+                            thinking_steps.append({
+                                "title": f"💭 Step {i+1}",
+                                "content": step_content.strip()
+                            })
+                    
+                    # Fallback: try other content attributes
+                    elif hasattr(step, 'content'):
+                        step_content = str(step.content)
+                        thinking_steps.append({
+                            "title": f"💭 Step {i+1}",
+                            "content": step_content.strip()
+                        })
+            
+            # Get final response content - extract only the answer part
+            final_content = ""
+            if hasattr(response, 'output_message') and hasattr(response.output_message, 'content'):
+                try:
+                    # Try to parse as JSON to extract just the answer
+                    content_json = json.loads(response.output_message.content)
+                    if 'answer' in content_json and content_json['answer']:
+                        final_content = content_json['answer']
+                    else:
+                        final_content = response.output_message.content
+                except json.JSONDecodeError:
+                    # If not JSON, use the content as-is
+                    final_content = response.output_message.content
+            else:
+                final_content = str(response)
+            
+            self.logger.info(f"Captured {len(thinking_steps)} thinking steps")
+            self.logger.info(f"Final content length: {len(final_content)} characters")
+            return final_content, thinking_steps
+            
         except Exception as e:
-            self.logger.error(f"Error in agent.create_turn: {str(e)}")
+            self.logger.error(f"Error in agent turn: {str(e)}")
             import traceback
             self.logger.error(f"Traceback: {traceback.format_exc()}")
-            raise e
-
-        # Print detailed response information
-        print("\n📋 AGENT RESPONSE:")
-        print("=" * 50)
-            
-        # Additional debugging for tool calls
-        if hasattr(response, 'steps'):
-            print(f"🔄 Response has {len(response.steps)} steps")
-            for i, step in enumerate(response.steps):
-                print(f"   Step {i+1}: {type(step)} - {getattr(step, 'step_type', 'unknown')}")
-                if hasattr(step, 'tool_calls') and step.tool_calls:
-                    for tool_call in step.tool_calls:
-                        print(f"      Tool: {tool_call.tool_name}")
-        
-        print(response)
-        print(f"\n💬 Response:")
-        print(response.output_message.content)
-
-        
-        # Check if tools were used
-        if hasattr(response, 'tool_calls') and response.tool_calls:
-            print(f"🔧 Tools used: {[tool.tool_name for tool in response.tool_calls]}")
-            for tool_call in response.tool_calls:
-                print(f"   - {tool_call.tool_name}: {tool_call.arguments}")
-        else:
-            print("🔧 No tools were used in this response")
-        
-        # Extract response content from the turn
-        if hasattr(response, 'output_message') and hasattr(response.output_message, 'content'):
-            content = response.output_message.content
-            self.logger.debug(f"Response content: {len(content)} characters")
-            return content
-        else:
-            # Fallback to string representation
-            fallback_content = str(response)
-            self.logger.debug(f"Fallback response: {len(fallback_content)} characters")
-            return fallback_content
+            return f"Error: {str(e)}", []
     
 
 class MCPTestTab:
@@ -979,7 +1076,8 @@ def create_demo(chat_tab: ChatTab, mcp_test_tab: MCPTestTab, rag_test_tab: RAGTe
                         with gr.Column():
                             # Chat Interface - Takes most of the space (scale 7)
                             with gr.Column(scale=7):
-                                history = [gr.ChatMessage(role="assistant", content="Hello, how can I help you?")]
+                                from gradio import ChatMessage
+                                history = [ChatMessage(role="assistant", content="Hello, how can I help you?")]
                                 
                                 chatbot = gr.Chatbot(history,
                                     label="💬 Chat with AI Assistant",
