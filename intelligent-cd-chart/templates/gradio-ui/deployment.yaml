@@ -40,16 +40,24 @@ spec:
               value: "7860"
             - name: LLAMA_STACK_URL
               value: "http://{{ .Values.llamaStack.name }}-service.{{ .Values.global.namespace }}:8321"
-            # - name: DEFAULT_LLM_MODEL
-            #   value: "{{ .Values.inference.model }}"
+            - name: LOG_LEVEL
+              value: "{{ .Values.gradioUI.env.LOG_LEVEL | default "INFO" }}"
             - name: TOOLGROUPS_DENYLIST
               value: '{{ .Values.gradioUI.env.TOOLGROUPS_DENYLIST | toJson }}'
+            {{- if .Values.gradioUI.env.ARGOCD_BASE_URL }}
             - name: ARGOCD_BASE_URL
               value: "{{ .Values.gradioUI.env.ARGOCD_BASE_URL }}"
             - name: ARGOCD_API_TOKEN
               value: "{{ .Values.gradioUI.env.ARGOCD_API_TOKEN }}"
-            - name: LOG_LEVEL
-              value: "{{ .Values.gradioUI.env.LOG_LEVEL | default "INFO" }}"
+            {{- end }}
+            {{- if .Values.gitHubMcpServer.enabled }}
+            - name: GITHUB_MCP_SERVER_AUTH_TOKEN
+              value: "{{ .Values.gitHubMcpServer.authToken }}"
+            - name: GITHUB_MCP_SERVER_TOOLSETS
+              value: "{{ .Values.gitHubMcpServer.toolsets }}"
+            - name: GITHUB_MCP_SERVER_READONLY
+              value: "{{ .Values.gitHubMcpServer.readonly }}"
+            {{- end }}
           livenessProbe:
             httpGet:
               path: "/"

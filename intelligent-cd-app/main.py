@@ -1285,28 +1285,48 @@ def create_demo(chat_tab: ChatTab, mcp_test_tab: MCPTestTab, rag_test_tab: RAGTe
 
 def get_extra_headers_config() -> dict:
     """Configure MCP server authentication headers and return them"""
+    mcp_headers = {}
+    
+    # Configure ArgoCD MCP server
     argocd_url = os.getenv("ARGOCD_BASE_URL")
     argocd_token = os.getenv("ARGOCD_API_TOKEN")
     
-    # Both variables must be defined for MCP authentication to work
-    if not argocd_url or not argocd_token:
+    if argocd_url and argocd_token:
+        mcp_headers["http://argocd-mcp-server:3000/sse"] = {
+            "x-argocd-base-url": argocd_url,
+            "x-argocd-api-token": argocd_token
+        }
+    
+    # Configure GitHub MCP server
+    github_auth_token = os.getenv("GITHUB_MCP_SERVER_AUTH_TOKEN")
+    
+    if github_auth_token:
+        github_headers = {
+            "Authorization": f"Bearer {github_auth_token}"
+        }
+        
+        # Add optional toolsets header
+        github_toolsets = os.getenv("GITHUB_MCP_SERVER_TOOLSETS")
+        if github_toolsets:
+            github_headers["X-MCP-Toolsets"] = github_toolsets
+        
+        # Add optional readonly header
+        github_readonly = os.getenv("GITHUB_MCP_SERVER_READONLY")
+        if github_readonly:
+            github_headers["X-MCP-Readonly"] = github_readonly
+        
+        mcp_headers["https://api.githubcopilot.com/mcp/"] = github_headers
+    
+    # Return empty dict if no MCP servers are configured
+    if not mcp_headers:
         return {}
     
-    # Both are defined, create headers array
-    else:
-        headers = {
-            "X-LlamaStack-Provider-Data": json.dumps(
-                {
-                    "mcp_headers": {
-                        "http://argocd-mcp-server:3000/sse": {
-                            "x-argocd-base-url": argocd_url,
-                            "x-argocd-api-token": argocd_token
-                        },
-                    },
-                }
-            )
-        }
-        return headers
+    # Return headers with MCP configuration
+    return {
+        "X-LlamaStack-Provider-Data": json.dumps({
+            "mcp_headers": mcp_headers
+        })
+    }
 
 
 def initialize_client() -> tuple[LlamaStackClient, ChatTab, MCPTestTab, RAGTestTab, SystemStatusTab]:
@@ -1322,7 +1342,19 @@ def initialize_client() -> tuple[LlamaStackClient, ChatTab, MCPTestTab, RAGTestT
     logger.info("=" * 60)
 
     extra_headers = get_extra_headers_config()
-    logger.info(f"Extra headers: {extra_headers}")
+    # Pretty print the extra headers with nested JSON parsing
+    if extra_headers and "X-LlamaStack-Provider-Data" in extra_headers:
+        try:
+            # Parse the nested JSON string
+            provider_data = json.loads(extra_headers["X-LlamaStack-Provider-Data"])
+            # Create a copy of extra_headers with parsed JSON
+            pretty_headers = extra_headers.copy()
+            pretty_headers["X-LlamaStack-Provider-Data"] = provider_data
+            logger.info(f"Extra headers: {json.dumps(pretty_headers, indent=2)}")
+        except json.JSONDecodeError:
+            logger.info(f"Extra headers: {json.dumps(extra_headers, indent=2)}")
+    else:
+        logger.info(f"Extra headers: {json.dumps(extra_headers, indent=2)}")
 
     # Initialize client and tabs
     llama_stack_client = LlamaStackClient(

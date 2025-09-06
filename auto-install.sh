@@ -43,7 +43,7 @@ echo "✅ ArgoCD API token retrieved successfully"
 echo "📊 Environment Variables Summary:"
 echo ""
 echo "🤖 OLS Configuration:"
-# echo "  Model: $MODEL_NAME"
+echo "  Model: $MODEL_NAME"
 echo "  URL: $MODEL_API_URL"
 echo "  Token: ${MODEL_API_TOKEN:0:10}..."
 echo ""
@@ -73,6 +73,7 @@ echo "  Readonly: $GITHUB_MCP_SERVER_READONLY"
 echo "🚀 Step 3: Deploying Intelligent CD application..."
 
 helm template intelligent-cd-chart \
+--set inference.model="$MODEL_NAME" \
 --set inference.url="$MODEL_API_URL" \
 --set inference.apiToken="$MODEL_API_TOKEN" \
 --set gradioUI.env.ARGOCD_BASE_URL="https://argocd-server.openshift-gitops:443" \

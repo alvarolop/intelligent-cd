@@ -4,7 +4,7 @@ global:
   namespace: intelligent-cd
 
 inference:
-  model: "llama-4-scout-17b-16e-w4a16"
+  model: "my-model"
   url: "https://URL:PORT/v1"
   apiToken: ""
   tlsVerify: "true"
@@ -53,8 +53,15 @@ gradioUI:
       - mcp::github
 
     # ArgoCD configuration
-    ARGOCD_BASE_URL: "https://argocd-server-openshift-gitops.apps.ocp.sandbox515.opentlc.com"
+    ARGOCD_BASE_URL: "https://argocd-server.openshift-gitops:443"
     ARGOCD_API_TOKEN: "<Token>"
+
+    # GitHub MCP Server configuration
+    # This is not deployed on OpenShift, but runs in GitHub.com
+    GITHUB_MCP_SERVER_AUTH_TOKEN: "<Token>"
+    # https://github.com/github/github-mcp-server/blob/main/docs/remote-server.md#remote-mcp-toolsets
+    GITHUB_MCP_SERVER_TOOLSETS: "pull_requests, repos, issues"
+    GITHUB_MCP_SERVER_READONLY: "true"
 
     # Security and logging
     LOG_LEVEL: "DEBUG" # DEBUG, INFO, WARNING, ERROR, CRITICAL
@@ -67,7 +74,6 @@ gradioUI:
     limits:
       cpu: "1"
       memory: "2Gi"
-
 
 mcpServers:
   ocp-mcp-server:
