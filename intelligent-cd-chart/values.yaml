@@ -11,6 +11,9 @@ inference:
 
 llamaStack:
   name: llama-stack
+  # Optional: Override the default distribution name "rh-dev" with a custom image
+  # image: "quay.io/opendatahub/llama-stack:odh"
+  # image: "quay.io/opendatahub/llama-stack:rhoai-v2.23-latest"
   route:
     enabled: false
 
@@ -58,7 +61,7 @@ gradioUI:
 
     # GitHub MCP Server configuration
     # This is not deployed on OpenShift, but runs in GitHub.com
-    GITHUB_MCP_SERVER_AUTH_TOKEN: "<Token>"
+    GITHUB_MCP_SERVER_AUTH_TOKEN: ""
     # https://github.com/github/github-mcp-server/blob/main/docs/remote-server.md#remote-mcp-toolsets
     GITHUB_MCP_SERVER_TOOLSETS: "pull_requests, repos, issues"
     GITHUB_MCP_SERVER_READONLY: "true"

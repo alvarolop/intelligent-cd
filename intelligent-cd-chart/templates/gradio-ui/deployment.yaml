@@ -50,7 +50,7 @@ spec:
             - name: ARGOCD_API_TOKEN
               value: "{{ .Values.gradioUI.env.ARGOCD_API_TOKEN }}"
             {{- end }}
-            {{- if .Values.gitHubMcpServer.enabled }}
+            {{- if .Values.gradioUI.env.GITHUB_MCP_SERVER_AUTH_TOKEN }}
             - name: GITHUB_MCP_SERVER_AUTH_TOKEN
               value: "{{ .Values.gitHubMcpServer.authToken }}"
             - name: GITHUB_MCP_SERVER_TOOLSETS
