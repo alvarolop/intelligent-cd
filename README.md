@@ -34,10 +34,31 @@ In order to deploy the Intelligent CD application, without customizing it, you c
 
 ## Step 1: How to deploy
 
-All the components are deployed using **ArgoCD**. You can find the application in the `app-intelligent-cd.yaml` file.
+All the components can deployed using **ArgoCD**, but as there are several variables to be set, we provide a script that will set the variables and deploy the application. First, you need to create a `.env` file with the following variables:
 
 ```bash
-oc apply -f app-intelligent-cd.yaml
+# Model Configuration
+# MODEL_NAME=llama-4-scout-17b-16e-w4a16
+MODEL_API_URL=https://your-model-api-url
+MODEL_API_TOKEN=your-model-api-token
+
+# GitHub MCP Server Configuration
+GITHUB_MCP_SERVER_AUTH_TOKEN="your-gh-pat-token"
+GITHUB_MCP_SERVER_TOOLSETS="pull_requests, repos, issues"
+GITHUB_MCP_SERVER_READONLY="true"
+
+# ServiceNow Configuration
+SERVICENOW_INSTANCE_URL=https://your-servicenow-instance-url
+SERVICENOW_AUTH_TYPE=basic
+SERVICENOW_USERNAME=your-servicenow-username
+SERVICENOW_PASSWORD=your-servicenow-password
+SERVICENOW_TOOL_PACKAGE=service_desk
+```
+
+Then, you can run the script to deploy the application:
+
+```bash
+./auto-install.sh
 ```
 
 > [!CAUTION]
@@ -55,18 +76,6 @@ You can customize the Intelligent CD application by modifying the `intelligent-c
 
 
 
-### Manual deployment without ArgoCD
-
-```bash
-helm template intelligent-cd-chart \
---set inference.model="$OLS_PROVIDER_MODEL_NAME" \
---set inference.url="$OLS_PROVIDER_API_URL" \
---set inference.apiToken="$OLS_PROVIDER_API_TOKEN" \
---set gradioUI.env.ARGOCD_BASE_URL="https://argocd-server.openshift-gitops:443" \
---set gradioUI.env.ARGOCD_API_TOKEN="$ARGOCD_API_TOKEN" \
-| oc apply -f -
-```
-
 ## Step 2: How to access the chat interface
 
 You can use the chat interface to modernize and optimize your cluster.
@@ -79,6 +88,7 @@ oc get route gradio -n intelligent-cd --template='https://{{ .spec.host }}/?__th
 
 ## Step 3: Ingest documents into the vector database
 
+You can ingest documents into the vector database by running the following command:
 
 ```bash
 export KUBEFLOW_ENDPOINT=$(oc get route ds-pipeline-dspa -n intelligent-cd-pipelines --template="https://{{.spec.host}}")
@@ -101,3 +111,48 @@ Test the image locally:
 ```bash
 podman run --network host quay.io/alopezme/intelligent-cd-gradio:latest
 ```
+
+
+
+
+## GitHub MCP Server
+
+For the GitHub MCP Server, you need to create a personal access token with the following permissions:
+
+**Token Details:**
+- Name: `github-mcp-server`
+- Expires: Tuesday, September 01, 2026
+- Repositories: 2 (intelligent-cd, intelligent-cd-gitops)
+- Total Permissions: 14
+
+**Required Permissions:**
+
+| Permission | Access Level |
+|------------|--------------|
+| Actions | Read-only |
+| Variables | Read-only |
+| Administration | Read-only |
+| Contents | Read-only |
+| Environments | Read-only |
+| Issues | Read-only |
+| Merge queues | Read-only |
+| Metadata | Read-only |
+| Pages | Read-only |
+| Pull requests | Read-only |
+| Webhooks | Read-only |
+| Secrets | Read-only |
+| Commit statuses | Read-only |
+| Workflows | Read and write |
+
+
+
+## ServiceNow MCP Server
+
+For the ServiceNow MCP Server, you need to create a developer instance of the ServiceNow platform:
+
+1. Access the [Developer portal](https://developer.servicenow.com) in ServiceNow.
+2. Create a new instance and access the [Management Console](https://developer.servicenow.com/dev.do#!/manage-instance).
+3. Retrieve the `Instance URL`, `Username`, and `Password` from the Management Console.
+4. Add those variables to the `.env` file.
+
+
