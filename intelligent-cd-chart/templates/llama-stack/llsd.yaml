@@ -10,8 +10,11 @@ spec:
   replicas: 1
   server:
     distribution:
+      {{- if .Values.llamaStack.image }}
+      image: {{ .Values.llamaStack.image | quote }}
+      {{- else }}
       name: rh-dev
-      # image: "quay.io/opendatahub/llama-stack:odh"
+      {{- end }}
     containerSpec:
       resources:
         requests:
