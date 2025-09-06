@@ -1,21 +1,21 @@
-{{- range .Values.mcpServers }}
+{{- range $name, $config := .Values.mcpServers }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .name }}
+  name: {{ $name }}
   namespace: {{ $.Values.global.namespace }}
   labels:
-    app: {{ .name }}
+    app: {{ $name }}
   annotations:
     argocd.argoproj.io/sync-wave: "-10"
 spec:
   type: ClusterIP
   ports:
-    - port: {{ .mcpServer.port }}
+    - port: {{ $config.mcpServer.port }}
       targetPort: http
       protocol: TCP
       name: http
   selector:
-    app: {{ .name }}
+    app: {{ $name }}
 {{- end }}

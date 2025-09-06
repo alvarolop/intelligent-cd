@@ -50,6 +50,7 @@ gradioUI:
     TOOLGROUPS_DENYLIST:
       - builtin::websearch
       - builtin::rag
+      - mcp::github
 
     # ArgoCD configuration
     ARGOCD_BASE_URL: "https://argocd-server-openshift-gitops.apps.ocp.sandbox515.opentlc.com"
@@ -67,8 +68,9 @@ gradioUI:
       cpu: "1"
       memory: "2Gi"
 
+
 mcpServers:
-  - name: ocp-mcp-server
+  ocp-mcp-server:
     replicaCount: 1
     image:
       repository: "quay.io/alopezme/kubernetes-mcp-server"
@@ -93,7 +95,7 @@ mcpServers:
     rbac:
       clusterRole: "view" # cluster-admin / view / edit
 
-  - name: argocd-mcp-server
+  argocd-mcp-server:
     replicaCount: 1
 
     image:
@@ -105,8 +107,26 @@ mcpServers:
     mcpServer:
       # Port for the MCP server to listen on
       port: 3000
-
+      # Add command to debug environment variables and start the server
+      args:
+        - "exec"
+        - "argocd-mcp@latest"
+        - "sse"
     serviceAccount:
       create: false
       # Service account name (required if create=true, optional if create=false for existing SA)
       name: default
+      
+  servicenow-mcp:
+    image:
+      repository: "quay.io/alopezme/servicenow-mcp"
+      tag: "latest"
+      pullPolicy: Always
+    mcpServer:
+      port: 8080
+    env:
+      SERVICENOW_INSTANCE_URL: "https://devInstance.service-now.com"
+      SERVICENOW_USERNAME: "your-username"
+      SERVICENOW_PASSWORD: "your-password"
+      SERVICENOW_AUTH_TYPE: "basic"
+      SERVICENOW_TOOL_PACKAGE: "service_desk"
