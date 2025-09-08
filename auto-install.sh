@@ -78,14 +78,15 @@ helm template intelligent-cd-chart \
 --set inference.apiToken="$MODEL_API_TOKEN" \
 --set gradioUI.env.ARGOCD_BASE_URL="https://argocd-server.openshift-gitops:443" \
 --set gradioUI.env.ARGOCD_API_TOKEN="$ARGOCD_API_TOKEN" \
---set gitHubMcpServer.enabled=false \
---set gitHubMcpServer.authToken="$GITHUB_MCP_SERVER_AUTH_TOKEN" \
---set mcpServers.servicenow-mcp.env.SERVICENOW_INSTANCE_URL="$SERVICENOW_INSTANCE_URL" \
---set mcpServers.servicenow-mcp.env.SERVICENOW_AUTH_TYPE="$SERVICENOW_AUTH_TYPE" \
---set mcpServers.servicenow-mcp.env.SERVICENOW_USERNAME="$SERVICENOW_USERNAME" \
---set mcpServers.servicenow-mcp.env.SERVICENOW_PASSWORD="$SERVICENOW_PASSWORD" \
---set mcpServers.servicenow-mcp.env.MCP_TOOL_PACKAGE="$SERVICENOW_MCP_TOOL_PACKAGE" \
+--set gradioUI.env.GITHUB_MCP_SERVER_AUTH_TOKEN="$GITHUB_MCP_SERVER_AUTH_TOKEN" \
+--set gradioUI.env.GITHUB_MCP_SERVER_READONLY="$GITHUB_MCP_SERVER_READONLY" \
+--set mcpServers.servicenowMcp.env.SERVICENOW_INSTANCE_URL="$SERVICENOW_INSTANCE_URL" \
+--set mcpServers.servicenowMcp.env.SERVICENOW_AUTH_TYPE="$SERVICENOW_AUTH_TYPE" \
+--set mcpServers.servicenowMcp.env.SERVICENOW_USERNAME="$SERVICENOW_USERNAME" \
+--set mcpServers.servicenowMcp.env.SERVICENOW_PASSWORD="$SERVICENOW_PASSWORD" \
+--set mcpServers.servicenowMcp.env.MCP_TOOL_PACKAGE="$SERVICENOW_MCP_TOOL_PACKAGE" \
 | oc apply -f -
+
 
 echo "✅ Helm template applied successfully"
 
