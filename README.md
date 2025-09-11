@@ -40,9 +40,15 @@ Your first question is probably: "OK, what how does it look like?". For that rea
 ![MCP Server Test](docs/images/mcp-test-ocp.png)
 
 
-5. Finally, the RAG module might fail if, for example, your LLama Stack is restarted without persistence, etc. For that reason, there is another tab just focused on retrieving results from the vector database (MilvusDB by default).
+5. The RAG module might fail if, for example, your LLama Stack is restarted without persistence, etc. For that reason, there is another tab just focused on retrieving results from the vector database (MilvusDB by default).
 
-<!-- ![MCP RAG Test](docs/images/rag-test-docs.png) # TO DO -->
+![MCP RAG Test](docs/images/rag-test-docs.png)
+
+
+6. Finally, here I have an example of how to request information from ServiceNow:
+
+
+![Chat using ServiceNow](docs/images/chat-check-servicenow.png)
 
 
 ## Repository structure
@@ -148,6 +154,10 @@ ServiceNow allows several types of authentication, but for demo purposes we will
 3. Retrieve the `Instance URL`, `Username`, and `Password` from the Management Console.
 4. Add those variables to the `.env` file.
 
+
+### 5. Web Search using Tavily
+
+For the Web Search using Tavily, you need to create a new API key in the [Tavily Developer Portal](https://tavily.com/developers/api-key). Add those variables to the `.env` file.
 
 
 
