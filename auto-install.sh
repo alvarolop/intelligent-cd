@@ -40,7 +40,7 @@ echo "✅ ArgoCD API token retrieved successfully"
 # Step 3: Print environment variables
 #####################################
 
-echo "📊 Environment Variables Summary:"
+echo "📊 Step 2: Environment Variables Summary:"
 echo ""
 echo "🤖 OLS Configuration:"
 echo "  Model: $MODEL_NAME"
@@ -64,13 +64,17 @@ echo "🔧 GitHub MCP Server Configuration:"
 echo "  Auth Token: ${GITHUB_MCP_SERVER_AUTH_TOKEN:0:10}..."
 echo "  Toolsets: $GITHUB_MCP_SERVER_TOOLSETS"
 echo "  Readonly: $GITHUB_MCP_SERVER_READONLY"
+echo ""
+echo " Web Search using Tavily"
+echo "🔧 Tavily API Token: $TAVILY_SEARCH_API_KEY"
+echo ""
 
 
 #####################################
 # Step 4: Apply the Helm Chart
 #####################################
 
-echo "🚀 Step 3: Deploying Intelligent CD application..."
+echo "🚀 Step 4: Deploying Intelligent CD application..."
 
 helm template intelligent-cd-chart \
 --set inference.model="$MODEL_NAME" \
@@ -79,22 +83,33 @@ helm template intelligent-cd-chart \
 --set gradioUI.env.ARGOCD_BASE_URL="https://argocd-server.openshift-gitops:443" \
 --set gradioUI.env.ARGOCD_API_TOKEN="$ARGOCD_API_TOKEN" \
 --set gradioUI.env.GITHUB_MCP_SERVER_AUTH_TOKEN="$GITHUB_MCP_SERVER_AUTH_TOKEN" \
+--set gradioUI.env.GITHUB_MCP_SERVER_TOOLSETS='$GITHUB_MCP_SERVER_TOOLSETS' \
 --set gradioUI.env.GITHUB_MCP_SERVER_READONLY="$GITHUB_MCP_SERVER_READONLY" \
 --set mcpServers.servicenowMcp.env.SERVICENOW_INSTANCE_URL="$SERVICENOW_INSTANCE_URL" \
 --set mcpServers.servicenowMcp.env.SERVICENOW_AUTH_TYPE="$SERVICENOW_AUTH_TYPE" \
 --set mcpServers.servicenowMcp.env.SERVICENOW_USERNAME="$SERVICENOW_USERNAME" \
 --set mcpServers.servicenowMcp.env.SERVICENOW_PASSWORD="$SERVICENOW_PASSWORD" \
 --set mcpServers.servicenowMcp.env.MCP_TOOL_PACKAGE="$SERVICENOW_MCP_TOOL_PACKAGE" \
+--set llamaStack.websearch.tavilyApiKey="$TAVILY_SEARCH_API_KEY" \
 | oc apply -f -
 
 
 echo "✅ Helm template applied successfully"
 
 #####################################
-# Step 5: Wait for pods to be ready
+# Step 5: Create the OpenTelemetry Deployment
 #####################################
 
-echo "⏳ Step 4: Waiting for operator pods to be ready..."
+echo "📡 Step 5: Configuring OpenTelemetry Stack..."
+oc apply -f https://raw.githubusercontent.com/alvarolop/quarkus-observability-app/refs/heads/main/apps/application-ocp-dist-tracing.yaml
+oc apply -f https://raw.githubusercontent.com/alvarolop/quarkus-observability-app/refs/heads/main/apps/application-ocp-coo.yaml
+
+
+#####################################
+# Step 6: Wait for pods to be ready
+#####################################
+
+echo "⏳ Step 6: Waiting for operator pods to be ready..."
 
 while [[ $(oc get pods -l app=llama-stack -n intelligent-cd -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do 
     echo -n "⏳" && sleep 1
@@ -103,10 +118,10 @@ done
 echo "✅ All pods are ready!"
 
 #####################################
-# Step 6: Run the pipeline
+# Step 7: Run the pipeline
 #####################################
 
-echo "🗄️ Step 5: Populating the vector database..."
+echo "🗄️ Step 7: Populating the vector database..."
 
 export KUBEFLOW_ENDPOINT=$(oc get route ds-pipeline-dspa -n intelligent-cd-pipelines --template="https://{{.spec.host}}")
 export BEARER_TOKEN=$(oc whoami --show-token)
