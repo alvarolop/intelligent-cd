@@ -1,23 +1,24 @@
-{{- range $name, $config := .Values.mcpServers }}
+{{- range $key, $config := .Values.mcpServers }}
+{{- if $config.mcpServer }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ $name }}
+  name: {{ $config.name }}
   namespace: {{ $.Values.global.namespace }}
   labels:
-    app: {{ $name }}
+    app: {{ $config.name }}
   annotations:
     argocd.argoproj.io/sync-wave: "-10"
 spec:
   selector:
     matchLabels:
-      app: {{ $name }}
+      app: {{ $config.name }}
   replicas: {{ $config.replicaCount }}
   template:
     metadata:
       labels:
-        app: {{ $name }}
+        app: {{ $config.name }}
     spec:
       {{- if $config.serviceAccount }}
       serviceAccountName: {{ $config.serviceAccount.name | default "default" }}
@@ -69,4 +70,5 @@ spec:
             requests:
               cpu: 100m
               memory: 128Mi
+{{- end }}
 {{- end }}

@@ -6,7 +6,7 @@ kind: ClusterRoleBinding
 metadata:
   name: {{ $config.serviceAccount.name }}-{{ $config.rbac.clusterRole | default "cluster-admin" }}
   labels:
-    app: {{ $name }}
+    app: {{ $config.name }}
   annotations:
     argocd.argoproj.io/sync-wave: "-10"
 subjects:

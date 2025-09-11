@@ -33,15 +33,15 @@ spec:
     enableExternalRoute: false
     externalStorage:
       basePath: ""
-      bucket: {{ .Values.global.namespace }}{{ .Values.pipelines.namespaceSuffix }}-{{ .Values.pipelines.connection.secretName }}
-      host: "{{ .Values.pipelines.connection.minioEndpoint }}"
-      port: "{{ .Values.pipelines.connection.minioPort }}"
-      region: "{{ .Values.pipelines.connection.minioRegion }}"
+      bucket: {{ .Values.global.namespace }}{{ .Values.pipelines.namespaceSuffix }}-{{ .Values.s3Bucket.connection.secretName }}
+      host: "{{ .Values.s3Bucket.connection.endpoint }}"
+      port: "{{ .Values.s3Bucket.connection.port }}"
+      region: "{{ .Values.s3Bucket.connection.region }}"
       s3CredentialsSecret:
         accessKey: AWS_ACCESS_KEY_ID
         secretKey: AWS_SECRET_ACCESS_KEY
-        secretName: "{{ .Values.pipelines.connection.secretName }}"
-      scheme: "{{ .Values.pipelines.connection.scheme }}"
+        secretName: "{{ .Values.s3Bucket.connection.secretName }}"
+      scheme: "{{ .Values.s3Bucket.connection.scheme }}"
   persistenceAgent:
     deploy: true
     numWorkers: 2

@@ -13,23 +13,39 @@ llamaStack:
   name: llama-stack
   # Optional: Override the default distribution name "rh-dev" with a custom image
   # image: "quay.io/opendatahub/llama-stack:odh"
-  # image: "quay.io/opendatahub/llama-stack:rhoai-v2.23-latest"
+  image: "quay.io/opendatahub/llama-stack:rhoai-v2.23-latest"
+  # image: "quay.io/opendatahub/llama-stack:rhoai-v2.24-latest"
+  # image: "quay.io/rh-ee-mmisiura/lls:run_moderation_lls_0.2.20"
+  # image: "quay.io/opendatahub/llama-stack:latest"
+  # image: "quay.io/aipcc/llama-stack/cpu-ubi9:latest"
+  # image: "quay.io/eformat/distribution-remote-vllm:0.2.15"
   route:
     enabled: false
+  opentelemetry:
+    enabled: false
+    bucketNameSuffix: "tempo"
+    otelServiceName: "llamastack"
+    telemetrySinks: "console,otel_trace" # 'console, sqlite, otel_trace, otel_metric'
+    otelExporterOtlpEndpoint: "http://otel-collector.otel.svc.cluster.local:4318"
+  websearch:
+    tavilyApiKey: ""
+
+# S3/MinIO bucket configuration (shared across components)
+s3Bucket:
+  connection:
+    secretName: minio-connection-secret
+    username: "minio"
+    password: "minio123"
+    endpoint: "minio.minio.svc.cluster.local"
+    port: '9000'
+    region: "none"
+    scheme: "http"
+  initJob:
+    image: quay.io/alopezme/aws-cli:latest
 
 pipelines:
   enabled: true
   namespaceSuffix: "-pipelines"
-  initJob:
-    image: quay.io/alopezme/aws-cli:latest
-  connection:
-    secretName: dashboard-dspa-secret
-    minioUsername: "minio"
-    minioPassword: "minio123"
-    minioEndpoint: "minio.minio.svc.cluster.local"
-    minioPort: '9000'
-    minioRegion: "none"
-    scheme: "http"
 
 RAG:
   enabled: true
@@ -43,15 +59,15 @@ gradioUI:
   image:
     repository: "quay.io/alopezme/intelligent-cd-gradio"
     tag: "latest"
-    pullPolicy: Always
+    # pullPolicy: Always
 
   exposure:
     # Type of exposure: none, ingress, or route
     type: "route"
 
   env:
-    TOOLGROUPS_DENYLIST:
-      - builtin::websearch
+    TOOLGROUPS_DENYLIST: 
+      # - builtin::websearch
       - builtin::rag
       - mcp::github
 
@@ -59,12 +75,12 @@ gradioUI:
     ARGOCD_BASE_URL: "https://argocd-server.openshift-gitops:443"
     ARGOCD_API_TOKEN: "<Token>"
 
-    # GitHub MCP Server configuration
-    # This is not deployed on OpenShift, but runs in GitHub.com
-    GITHUB_MCP_SERVER_AUTH_TOKEN: ""
-    # https://github.com/github/github-mcp-server/blob/main/docs/remote-server.md#remote-mcp-toolsets
-    GITHUB_MCP_SERVER_TOOLSETS: "pull_requests, repos, issues"
-    GITHUB_MCP_SERVER_READONLY: "true"
+    # # GitHub MCP Server configuration
+    # # This is not deployed on OpenShift, but runs in GitHub.com
+    # GITHUB_MCP_SERVER_AUTH_TOKEN: ""
+    # # https://github.com/github/github-mcp-server/blob/main/docs/remote-server.md#remote-mcp-toolsets
+    # GITHUB_MCP_SERVER_TOOLSETS: "pull_requests, repos, issues"
+    # GITHUB_MCP_SERVER_READONLY: "true"
 
     # Security and logging
     LOG_LEVEL: "DEBUG" # DEBUG, INFO, WARNING, ERROR, CRITICAL
@@ -75,18 +91,17 @@ gradioUI:
       cpu: "250m"
       memory: "512Mi"
     limits:
-      cpu: "1"
+      cpu: "1500m"
       memory: "2Gi"
 
 mcpServers:
-  ocp-mcp-server:
+  ocpMcpServer:
+    name: ocp-mcp-server
     replicaCount: 1
     image:
       repository: "quay.io/alopezme/kubernetes-mcp-server"
       tag: "latest"
-      pullPolicy: Always
 
-    # MCP Server specific configuration
     mcpServer:
       port: 8080
       args:
@@ -104,15 +119,12 @@ mcpServers:
     rbac:
       clusterRole: "view" # cluster-admin / view / edit
 
-  argocd-mcp-server:
+  argocdMcpServer:
+    name: argocd-mcp-server
     replicaCount: 1
-
     image:
       repository: "quay.io/alopezme/argocd-mcp"
       tag: "latest"
-      pullPolicy: Always
-
-    # MCP Server specific configuration
     mcpServer:
       # Port for the MCP server to listen on
       port: 3000
@@ -126,11 +138,12 @@ mcpServers:
       # Service account name (required if create=true, optional if create=false for existing SA)
       name: default
       
-  servicenow-mcp:
+  servicenowMcp:
+    name: servicenow-mcp
+    replicaCount: 1
     image:
       repository: "quay.io/alopezme/servicenow-mcp"
       tag: "latest"
-      pullPolicy: Always
     mcpServer:
       port: 8080
     env:

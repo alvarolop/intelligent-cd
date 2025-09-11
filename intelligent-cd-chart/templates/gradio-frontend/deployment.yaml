@@ -13,15 +13,18 @@ spec:
   selector:
     matchLabels:
       app: {{ .Values.gradioUI.name }}
+  replicas: 1
   template:
     metadata:
       labels:
         app: {{ .Values.gradioUI.name }}
     spec:
+      terminationGracePeriodSeconds: 5
+      serviceAccountName: "default"
       containers:
         - name: {{ .Values.gradioUI.name }}
           image: "{{ .Values.gradioUI.image.repository }}:{{ .Values.gradioUI.image.tag | default "latest" }}"
-          imagePullPolicy: {{ .Values.gradioUI.image.pullPolicy | default "Always" }}
+          imagePullPolicy: {{ .Values.gradioUI.image.pullPolicy | default "" }}
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false
@@ -35,11 +38,11 @@ spec:
           env:
             # Gradio Configuration
             - name: GRADIO_SERVER_NAME
-              value: "0.0.0.0"
+              value: 0.0.0.0
             - name: GRADIO_SERVER_PORT
-              value: "7860"
+              value: '7860'            
             - name: LLAMA_STACK_URL
-              value: "http://{{ .Values.llamaStack.name }}-service.{{ .Values.global.namespace }}:8321"
+              value: 'http://{{ .Values.llamaStack.name }}-service.{{ .Values.global.namespace }}:8321'
             - name: LOG_LEVEL
               value: "{{ .Values.gradioUI.env.LOG_LEVEL | default "INFO" }}"
             - name: TOOLGROUPS_DENYLIST
@@ -52,11 +55,11 @@ spec:
             {{- end }}
             {{- if .Values.gradioUI.env.GITHUB_MCP_SERVER_AUTH_TOKEN }}
             - name: GITHUB_MCP_SERVER_AUTH_TOKEN
-              value: "{{ .Values.gitHubMcpServer.authToken }}"
+              value: "{{ .Values.gradioUI.env.GITHUB_MCP_SERVER_AUTH_TOKEN }}"
             - name: GITHUB_MCP_SERVER_TOOLSETS
-              value: "{{ .Values.gitHubMcpServer.toolsets }}"
+              value: "{{ .Values.gradioUI.env.GITHUB_MCP_SERVER_TOOLSETS }}"
             - name: GITHUB_MCP_SERVER_READONLY
-              value: "{{ .Values.gitHubMcpServer.readonly }}"
+              value: "{{ .Values.gradioUI.env.GITHUB_MCP_SERVER_READONLY }}"
             {{- end }}
           livenessProbe:
             httpGet:
@@ -66,7 +69,6 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3
-          
           readinessProbe:
             httpGet:
               path: "/"
@@ -79,4 +81,3 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      terminationGracePeriodSeconds: 5          

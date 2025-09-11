@@ -50,20 +50,39 @@ spec:
             secretKeyRef:
               key: MCP_OCP_URL
               name: {{ .Values.llamaStack.name }}-secret
-        - name: MCP_OCP_TLS_VERIFY
-          valueFrom:
-            secretKeyRef:
-              key: MCP_OCP_TLS_VERIFY
-              name: {{ .Values.llamaStack.name }}-secret
         - name: MCP_ARGOCD_URL
           valueFrom:
             secretKeyRef:
               key: MCP_ARGOCD_URL
               name: {{ .Values.llamaStack.name }}-secret
-        - name: MCP_ARGOCD_TLS_VERIFY
+        - name: MCP_SERVICENOW_URL
           valueFrom:
             secretKeyRef:
-              key: MCP_ARGOCD_TLS_VERIFY
+              key: MCP_SERVICENOW_URL
+              name: {{ .Values.llamaStack.name }}-secret
+        {{- end }}
+        {{- if .Values.llamaStack.opentelemetry.enabled }}
+        - name: OTEL_SERVICE_NAME
+          valueFrom:
+            secretKeyRef:
+              key: OTEL_SERVICE_NAME
+              name: {{ .Values.llamaStack.name }}-secret
+        - name: TELEMETRY_SINKS
+          valueFrom:
+            secretKeyRef:
+              key: TELEMETRY_SINKS
+              name: {{ .Values.llamaStack.name }}-secret
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              key: OTEL_EXPORTER_OTLP_ENDPOINT
+              name: {{ .Values.llamaStack.name }}-secret
+        {{- end }}
+        {{- if .Values.llamaStack.websearch.tavilyApiKey }}
+        - name: TAVILY_SEARCH_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: TAVILY_SEARCH_API_KEY
               name: {{ .Values.llamaStack.name }}-secret
         {{- end }}
     {{- if .Values.mcpServers }}

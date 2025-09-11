@@ -1,12 +1,12 @@
-{{- if .Values.pipelines.enabled }}
+{{- if .Values.llamaStack.opentelemetry.enabled }}
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name:  {{ .Values.global.namespace }}{{ .Values.pipelines.namespaceSuffix }}-create-s3-bucket
-  namespace:  {{ .Values.global.namespace }}{{ .Values.pipelines.namespaceSuffix }}
+  name:  {{ .Values.llamaStack.name }}-create-s3-bucket-tempo
+  namespace:  {{ .Values.global.namespace }}
   labels:
-    app:  {{ .Values.llamaStack.name }}  
+    app:  {{ .Values.llamaStack.name }}
     component: s3-bucket-creation
   annotations:
     argocd.argoproj.io/sync-wave: "-10"
@@ -17,7 +17,7 @@ spec:
   template:
     metadata:
       labels:
-        app:  {{ .Values.llamaStack.name }} 
+        app:  {{ .Values.llamaStack.name }}
         component: s3-bucket-creation
     spec:
       containers:
@@ -29,7 +29,7 @@ spec:
         - -c
         - |
           #!/bin/bash
-          AWS_S3_BUCKET="{{ .Values.global.namespace }}{{ .Values.pipelines.namespaceSuffix }}-{{ .Values.s3Bucket.connection.secretName }}"
+          AWS_S3_BUCKET="{{ .Values.global.namespace }}-{{ .Values.llamaStack.opentelemetry.bucketNameSuffix }}"
           AWS_ENDPOINT_URL="{{ .Values.s3Bucket.connection.scheme }}://{{ .Values.s3Bucket.connection.endpoint }}:{{ .Values.s3Bucket.connection.port }}"
           export AWS_ACCESS_KEY_ID={{ .Values.s3Bucket.connection.username }}
           export AWS_SECRET_ACCESS_KEY={{ .Values.s3Bucket.connection.password }}
