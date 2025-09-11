@@ -24,6 +24,11 @@ COPY --from=builder /opt/app-root/bin /usr/local/bin
 
 # Copy application code
 COPY main.py .
+COPY utils.py .
+
+# Copy application modules
+COPY tabs/ ./tabs/
+COPY gradio_app/ ./gradio_app/
 
 # Copy assets folder for chatbot avatars
 COPY assets/ ./assets/
@@ -35,6 +40,7 @@ EXPOSE 7860
 ENV GRADIO_SERVER_NAME=0.0.0.0
 ENV GRADIO_SERVER_PORT=7860
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
 
 # Run the application
 CMD ["python3.12", "main.py"]

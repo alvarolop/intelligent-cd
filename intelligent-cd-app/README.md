@@ -9,12 +9,29 @@ A simple web interface to access Llama Stack for LLM and Agent interactions with
 - **🔍 System Status**: Monitor Llama Stack connectivity and health
 - **☸️ OpenShift Integration**: Access Kubernetes/OpenShift resources via MCP
 
+
+## Directory Structure
+
+```
+intelligent-cd-app/
+├── main.py                     # 🎯 EVERYTHING HERE - The Standard Python Way
+├── tabs/                       # Tab classes only
+│   ├── __init__.py
+│   ├── chat_tab.py            # ChatTab class
+│   ├── mcp_test_tab.py        # MCPTestTab class
+│   ├── rag_test_tab.py        # RAGTestTab class
+│   └── system_status_tab.py   # SystemStatusTab class
+└── gradio_app/                # Gradio interface only
+    ├── __init__.py
+    └── interface.py           # Gradio UI creation
+```
+
 ## Prerequisites
 
 - Python 3.11+
 - Podman (optional)
 - Llama Stack deployment running
-- Port forwarding: `oc port-forward service/llama-stack-service 8321:8321`
+- Port forwarding: `oc port-forward service/llama-stack-service 8321:8321 -n intelligent-cd`
 
 ## Quick Start
 
