@@ -89,6 +89,7 @@ providers:
       sinks: ${env.TELEMETRY_SINKS:=console,sqlite}
       sqlite_db_path: /opt/app-root/src/.llama/distributions/rh/trace_store.db
       otel_exporter_otlp_endpoint: ${env.OTEL_EXPORTER_OTLP_ENDPOINT:=}
+      otel_trace_endpoint: ${env.OTEL_EXPORTER_OTLP_ENDPOINT:=}/v1/traces
   tool_runtime:
   - provider_id: brave-search
     provider_type: remote::brave-search

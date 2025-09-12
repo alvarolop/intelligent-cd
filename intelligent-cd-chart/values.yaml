@@ -22,7 +22,7 @@ llamaStack:
   route:
     enabled: false
   opentelemetry:
-    enabled: false
+    enabled: true
     bucketNameSuffix: "tempo"
     otelServiceName: "llamastack"
     telemetrySinks: "console,otel_trace" # 'console, sqlite, otel_trace, otel_metric'
