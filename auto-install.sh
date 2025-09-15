@@ -71,10 +71,19 @@ echo ""
 
 
 #####################################
-# Step 4: Apply the Helm Chart
+# Step 4: Create the OpenTelemetry Deployment
 #####################################
 
-echo "🚀 Step 4: Deploying Intelligent CD application..."
+echo "📡 Step 4: Configuring OpenTelemetry Stack..."
+oc apply -f https://raw.githubusercontent.com/alvarolop/quarkus-observability-app/refs/heads/main/apps/application-ocp-dist-tracing.yaml
+oc apply -f https://raw.githubusercontent.com/alvarolop/quarkus-observability-app/refs/heads/main/apps/application-ocp-coo.yaml
+sleep 5
+
+#####################################
+# Step 5: Apply the Helm Chart
+#####################################
+
+echo "🚀 Step 5: Deploying Intelligent CD application..."
 
 helm template intelligent-cd-chart \
 --set inference.model="$MODEL_NAME" \
@@ -95,14 +104,6 @@ helm template intelligent-cd-chart \
 
 
 echo "✅ Helm template applied successfully"
-
-#####################################
-# Step 5: Create the OpenTelemetry Deployment
-#####################################
-
-echo "📡 Step 5: Configuring OpenTelemetry Stack..."
-oc apply -f https://raw.githubusercontent.com/alvarolop/quarkus-observability-app/refs/heads/main/apps/application-ocp-dist-tracing.yaml
-oc apply -f https://raw.githubusercontent.com/alvarolop/quarkus-observability-app/refs/heads/main/apps/application-ocp-coo.yaml
 
 
 #####################################
