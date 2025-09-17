@@ -118,11 +118,23 @@ done
 
 echo "✅ All pods are ready!"
 
+
 #####################################
-# Step 7: Run the pipeline
+# Step 7: Deploy the LLS Playground
 #####################################
 
-echo "🗄️ Step 7: Populating the vector database..."
+echo "🗄️ Step 7: Deploying the LLS Playground..."
+
+cat application-lls-playground.yaml | \
+  CLUSTER_DOMAIN=$(oc get dns.config/cluster -o jsonpath='{.spec.baseDomain}') \
+  LLS_ENDPOINT="http://llama-stack-service.intelligent-cd.svc.cluster.local:8321" \
+  envsubst | oc apply -f -
+
+#####################################
+# Step 8: Run the pipeline
+#####################################
+
+echo "🗄️ Step 8: Populating the vector database..."
 
 export KUBEFLOW_ENDPOINT=$(oc get route ds-pipeline-dspa -n intelligent-cd-pipelines --template="https://{{.spec.host}}")
 export BEARER_TOKEN=$(oc whoami --show-token)
