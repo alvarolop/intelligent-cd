@@ -40,8 +40,6 @@ s3Bucket:
     port: '9000'
     region: "none"
     scheme: "http"
-  initJob:
-    image: quay.io/alopezme/aws-cli:latest
 
 pipelines:
   enabled: true

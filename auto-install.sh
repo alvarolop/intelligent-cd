@@ -1,7 +1,4 @@
 #!/bin/bash
-
-# 🚀 Intelligent CD Auto-Installation Script
-
 set -e
 
 echo "🚀 Starting Intelligent CD deployment..."
@@ -40,7 +37,7 @@ echo "✅ ArgoCD API token retrieved successfully"
 # Step 3: Print environment variables
 #####################################
 
-echo "📊 Step 2: Environment Variables Summary:"
+echo "📊 Step 3: Environment Variables Summary:"
 echo ""
 echo "🤖 OLS Configuration:"
 echo "  Model: $MODEL_NAME"
@@ -65,19 +62,68 @@ echo "  Auth Token: ${GITHUB_MCP_SERVER_AUTH_TOKEN:0:10}..."
 echo "  Toolsets: $GITHUB_MCP_SERVER_TOOLSETS"
 echo "  Readonly: $GITHUB_MCP_SERVER_READONLY"
 echo ""
+echo "🔧 GitLab GitOps Configuration:"
+echo "  GitLab PAT: ${GITLAB_PAT:0:10}..."
+echo ""
 echo " Web Search using Tavily"
 echo "🔧 Tavily API Token: $TAVILY_SEARCH_API_KEY"
 echo ""
 
+# Check if the GitLab GitOps secret exists in the specified namespace
+if ! oc get secret gitlab-creds -n openshift-gitops &>/dev/null; then
+    echo "🔐 Creating GitLab GitOps Secret..."
+    
+    cat <<EOF | oc apply -f -
+kind: Secret
+apiVersion: v1
+metadata:
+  name: gitlab-creds
+  namespace: openshift-gitops
+  labels:
+    argocd.argoproj.io/secret-type: repo-creds
+stringData:
+  password: $GITLAB_PAT
+  project: default
+  type: git
+  url: https://gitlab.consulting.redhat.com/rh126-demojam/intelligent-cd-iberia.git
+  username: ""
+  name: "GitLab GitOps Credentials"
+type: Opaque
+EOF
+    echo "✅ GitLab GitOps Secret created successfully"
+else
+    echo "✅ GitLab GitOps Secret already exists. Skipping creation."
+fi
+
 
 #####################################
-# Step 4: Create the OpenTelemetry Deployment
+# Step 4: Create the MinIO storage
 #####################################
 
-echo "📡 Step 4: Configuring OpenTelemetry Stack..."
-oc apply -f https://raw.githubusercontent.com/alvarolop/quarkus-observability-app/refs/heads/main/apps/application-ocp-dist-tracing.yaml
-oc apply -f https://raw.githubusercontent.com/alvarolop/quarkus-observability-app/refs/heads/main/apps/application-ocp-coo.yaml
+echo "📡 Step 4: Creating MinIO storage..."
+cat application-minio.yaml | \
+  CLUSTER_DOMAIN=$(oc get dns.config/cluster -o jsonpath='{.spec.baseDomain}') \
+  envsubst | oc apply -f -
 sleep 5
+
+echo "Waiting for MinIO pods to be ready..."
+
+while [[ $(oc get pods -l app=minio -n minio -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do 
+    echo -n "⏳" && sleep 1
+done
+
+echo "✅ MinIO pods are ready!"
+
+
+#####################################
+# Step 5: Create the Distributed Tracing Deployment
+#####################################
+
+echo "📡 Step 5: Configuring Distributed Tracing Stack..."
+oc apply -f application-ocp-dist-tracing.yaml
+sleep 5
+
+
 
 #####################################
 # Step 5: Apply the Helm Chart

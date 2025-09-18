@@ -3,26 +3,18 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   labels:
-    app: lls-playground
-  name: lls-playground
+    app: ocp-dist-tracing
+  name: ocp-dist-tracing
   namespace: openshift-gitops
 spec:
   destination:
     server: 'https://kubernetes.default.svc'
   project: default
   source:
-    path: components/lls-playground
+    path: components/ocp-dist-tracing
     repoURL: https://gitlab.consulting.redhat.com/rh126-demojam/intelligent-cd-iberia.git
     targetRevision: main
-    helm:
-      values: |
-        global:
-          clusterDomain: $CLUSTER_DOMAIN
-        llamaStack:
-          endpoint: $LLS_ENDPOINT
   syncPolicy:
     automated:
       prune: false
       selfHeal: false
-    syncOptions:
-      - CreateNamespace=true

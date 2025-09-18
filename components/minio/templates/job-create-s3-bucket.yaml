@@ -1,39 +1,40 @@
-{{- if .Values.llamaStack.opentelemetry.enabled }}
+{{- if .Values.initBuckets }}
+{{- range .Values.initBuckets }}
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name:  {{ .Values.llamaStack.name }}-create-s3-bucket-tempo
-  namespace:  {{ .Values.global.namespace }}
+  name:  create-s3-bucket-{{ .Values.name }}
+  namespace: {{ .Values.namespace }}
   labels:
-    app:  {{ .Values.llamaStack.name }}
+    app: create-s3-bucket
     component: s3-bucket-creation
   annotations:
-    argocd.argoproj.io/sync-wave: "-10"
-    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "10"
+    argocd.argoproj.io/hook: PostSync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 spec:
   ttlSecondsAfterFinished: 0
   template:
     metadata:
       labels:
-        app:  {{ .Values.llamaStack.name }}
+        app: create-s3-bucket
         component: s3-bucket-creation
     spec:
       containers:
       - name: s3-bucket-creator
-        image: {{ .Values.s3Bucket.initJob.image }}
+        image: {{ .Values.initJob.image }}
         imagePullPolicy: Always
         command: ["/bin/bash"]
         args:
         - -c
         - |
           #!/bin/bash
-          AWS_S3_BUCKET="{{ .Values.global.namespace }}-{{ .Values.llamaStack.opentelemetry.bucketNameSuffix }}"
-          AWS_ENDPOINT_URL="{{ .Values.s3Bucket.connection.scheme }}://{{ .Values.s3Bucket.connection.endpoint }}:{{ .Values.s3Bucket.connection.port }}"
-          export AWS_ACCESS_KEY_ID={{ .Values.s3Bucket.connection.username }}
-          export AWS_SECRET_ACCESS_KEY={{ .Values.s3Bucket.connection.password }}
-          export AWS_DEFAULT_REGION={{ .Values.s3Bucket.connection.region }}
+          AWS_S3_BUCKET="{{ .Values.name }}"
+          AWS_ENDPOINT_URL="http://{{ .Values.service.name }}:{{ .Values.service.port }}"
+          export AWS_ACCESS_KEY_ID={{ .Values.adminUser.username }}
+          export AWS_SECRET_ACCESS_KEY={{ .Values.adminUser.password }}
+          export AWS_DEFAULT_REGION={{ .Values.adminUser.region }}
 
           # # Print environment variables
           # echo -e "\n=============="

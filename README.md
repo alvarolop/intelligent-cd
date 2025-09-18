@@ -4,6 +4,53 @@ This project provides an application that can be deployed to an OpenShift cluste
 
 ![Chatbot Interface](docs/images/chatbot.png)
 
+
+## Prerequisites
+
+As this repository is inside the Red Hat Consulting organization GitLab, you need to create a personal access token in this [URL](https://gitlab.consulting.redhat.com/-/user_settings/personal_access_tokens) with the following permissions: `read_repository`. Add the token to the `.env` file.
+
+
+
+## Installation
+
+This application is prepared to be deployed using ArgoCD on a cluster deployed using the [AI Accelerator](https://github.com/redhat-ai-services/ai-accelerator).
+
+**First**, you need to **create an OpenShift cluster using Demo RedHat**. Please request an environment for tomorrow from our demo platform: [AWS with OpenShift Open Environment](https://catalog.demo.redhat.com/catalog?search=aws&item=babylon-catalog-prod%2Fsandboxes-gpte.sandbox-ocp.prod). Select following in the order form:
+* Activity: `Practice / Enablement`.
+* Purpose: `Learning about the product`.
+* Region: `us-east-2` (even if you are in EMEA or APAC, still choose `us-east-2`).
+* OpenShift Version: `4.19`.
+* Control Plane Instance Type: `m6a.4xlarge`.
+
+
+
+**Second**, log in to the cluster and install all the components following [their documentation](https://github.com/redhat-ai-services/ai-accelerator/blob/main/documentation/installation.md#bootstrapping-a-cluster): 
+
+```bash
+git clone https://github.com/redhat-ai-services/ai-accelerator.git
+cd ai-accelerator
+./bootstrap.sh
+```
+
+**NOTE**: During the installation, you will be asked to select a bootstrap folder. Choose the overlay `3) rhoai-fast-aws-gpu`  to install the latest version of OpenShift AI with GPU support.
+
+**NOTE**: There is a bug in the current implementation of the AI Accelerator, so the apps get stuck in a pending state waiting indefinitely for other components to be deployed. You can fix it by running the following command:
+```bash
+oc project openshift-gitops
+argocd app terminate-op openshift-gitops/openshift-ai-operator; argocd app sync openshift-gitops/openshift-ai-operator
+# When the OpenShift AI operator App is synced, the other apps should be able to deploy
+argocd app list | grep OutOfSync | awk '{print $1}' | xargs -I {} sh -c 'argocd app terminate-op {} && argocd app sync {}'
+```
+
+
+**Third**, run the script to install the side components as well as the Intelligent CD application:
+
+```bash
+./auto-install.sh
+```
+
+
+
 ## Features
 
 - Chat interface to modernize and optimize your cluster based on **Gradio**.
